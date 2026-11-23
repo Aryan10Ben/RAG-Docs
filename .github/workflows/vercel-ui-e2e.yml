@@ -1,0 +1,39 @@
+name: Vercel UI acceptance
+
+on:
+  push:
+    branches:
+      - design/thalius-inspired-minimal-v2
+    paths:
+      - backend/tests/live_vercel_ui_smoke.py
+      - .github/workflows/vercel-ui-e2e.yml
+
+permissions:
+  contents: read
+
+jobs:
+  real-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Playwright and PDF test dependency
+        run: pip install playwright reportlab
+      - name: Install Chromium dependencies
+        run: python -m playwright install --with-deps chromium
+      - name: Exercise real PDF upload and Q&A browser flow
+        env:
+          RAG_API_URL: https://sourcelens-alwy3cq0p-aryan-ben-project.vercel.app
+        run: python backend/tests/live_vercel_ui_smoke.py
+      - name: Upload visual proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sourcelens-browser-screenshots
+          path: |
+            sourcelens-desktop-proof.png
+            sourcelens-mobile-proof.png
+          if-no-files-found: ignore
