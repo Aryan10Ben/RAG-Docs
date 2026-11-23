@@ -71,9 +71,11 @@ def main():
         r3.raise_for_status()
         response = r3.json()
         assert FACT in response.get("answer", ""), "Answer did not contain the fact from PDF"
-        assert response.get("sources"), "The AI answer has no supporting source passages"
+        expected_mode = os.getenv("RAG_EXPECTED_ANSWER_MODE", "extractive")
+        assert response.get("answer_mode") == expected_mode, "Unexpected answer mode: " + str(response.get("answer_mode"))
+        assert response.get("sources"), "The answer has no supporting source passages"
         assert any(FACT in s.get("snippet", "") for s in response["sources"]), "Sources do not contain the actual fact"
-        print("PASS: Hosted PDF -> text -> embeddings -> similarity -> LLM answer + evidence.", flush=True)
+        print("PASS: Hosted PDF -> text -> vectors -> retrieval -> grounded answer + evidence.", flush=True)
         return 0
     except Exception as exc:
         print("FAIL:", type(exc).__name__, str(exc)[:500], file=sys.stderr, flush=True)
