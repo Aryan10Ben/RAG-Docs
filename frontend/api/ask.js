@@ -28,7 +28,7 @@ export async function POST(request) {
     const embedded = await gateway("embeddings", {
       model: EMBEDDING_MODEL,
       input: question,
-    });
+    }, request);
     const vector = embedded?.data?.[0]?.embedding;
     if (!Array.isArray(vector) || vector.length !== dimension) {
       throw new Error("Unable to embed the question.");
@@ -62,7 +62,7 @@ export async function POST(request) {
           content: "Retrieved PDF passages:\n" + context + "\n\nQuestion: " + question,
         },
       ],
-    });
+    }, request);
     const answer = completion?.choices?.[0]?.message?.content;
     if (!answer || typeof answer !== "string") throw new Error("AI model returned no usable answer.");
     return json({
