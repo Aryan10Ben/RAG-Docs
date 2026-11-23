@@ -1,7 +1,8 @@
-import { bad, EMBEDDING_MODEL, gateway, json, safeText } from "../lib/rag.js";
+import { bad, json, safeText } from "../lib/rag.js";
+import { lexicalEmbedding, LOCAL_MODEL } from "../lib/local-retrieval.js";
 
 export async function GET() {
-  return json({ status: "ok", service: "sourcelens-index", embedding_model: EMBEDDING_MODEL });
+  return json({ status: "ok", service: "sourcelens-index", embedding_model: LOCAL_MODEL, mode: "local" });
 }
 
 export async function POST(request) {
@@ -22,19 +23,12 @@ export async function POST(request) {
   if (chunks.reduce((sum, item) => sum + item.text.length, 0) > 65_000) {
     return bad("Document contains too much text for this demo.");
   }
-  try {
-    const result = await gateway("embeddings", {
-      model: EMBEDDING_MODEL,
-      input: chunks.map((item) => item.text),
-    }, request);
-    const ordered = Array.isArray(result.data) ? [...result.data].sort((a, b) => a.index - b.index) : [];
-    if (ordered.length !== chunks.length || ordered.some((item) => !Array.isArray(item.embedding))) {
-      throw new Error("Embedding response was incomplete.");
-    }
-    const indexed = chunks.map((item, idx) => ({ ...item, embedding: ordered[idx].embedding }));
-    return json({ status: "success", model: EMBEDDING_MODEL, chunks_added: indexed.length, indexed });
-  } catch (error) {
-    console.error("Index request failed", error.message);
-    return bad(error.message || "Unable to create document embeddings.", 502);
-  }
+  // Deterministic vector embeddings require no external service or secrets.
+  // Generation is an independent, opt-in service controlled in /api/ask.
+  const indexed = chunks.map((item) => ({
+    ...item,
+    embedding: lexicalEmbedding(item.text),
+    embedding_model: LOCAL_MODEL,
+  }));
+  return json({ status: "success", model: LOCAL_MODEL, chunks_added: indexed.length, indexed });
 }
