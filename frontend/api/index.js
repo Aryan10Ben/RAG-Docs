@@ -26,7 +26,7 @@ export async function POST(request) {
     const result = await gateway("embeddings", {
       model: EMBEDDING_MODEL,
       input: chunks.map((item) => item.text),
-    });
+    }, request);
     const ordered = Array.isArray(result.data) ? [...result.data].sort((a, b) => a.index - b.index) : [];
     if (ordered.length !== chunks.length || ordered.some((item) => !Array.isArray(item.embedding))) {
       throw new Error("Embedding response was incomplete.");
