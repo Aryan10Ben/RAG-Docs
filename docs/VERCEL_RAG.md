@@ -55,7 +55,11 @@ npm run lint && npm test && npm run build
 RAG_API_URL=https://YOUR-VERCEL-PREVIEW.vercel.app python backend/tests/live_vercel_rag_smoke.py
 ```
 
-Full API test: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45243041438
+Latest real API test: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45244610161
+
+Latest real browser test (desktop + mobile screenshots): https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45244616746
+
+Latest React/Python CI: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45244623235
 
 ## Release checklist
 
@@ -65,7 +69,7 @@ Full API test: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45243041438
 - [x] Relevant source retrieved
 - [x] Extractive answer matches the PDF's known fact
 - [x] Evidence filename and page included
-- [ ] Browser upload/answer UI verified on the same preview
+- [x] Browser upload/answer UI verified on the same preview
 - [ ] Full LLM-generation backend authorized and verified
 - [ ] Usage limits / anti-abuse safeguards reviewed for paid AI
 - [ ] Merge reviewed changes into main
