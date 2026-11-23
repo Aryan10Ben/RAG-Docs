@@ -15,16 +15,29 @@ function readError(data, fallback) {
 export async function uploadDocument(file, sessionId) {
   const form = new FormData();
   form.append("file", file);
-  const response = await fetch(API_BASE + "/files/upload", {
-    method: "POST",
-    headers: { "X-Session-Id": sessionId },
-    body: form,
-  });
-  const data = await parseJson(response);
-  if (!response.ok) {
-    throw new Error(readError(data, "Upload failed (HTTP " + response.status + ")."));
+  const controller = new AbortController();
+  // Prevent a sleeping or unavailable backend from leaving the upload spinner active indefinitely.
+  const timeout = window.setTimeout(() => controller.abort(), 120000);
+  try {
+    const response = await fetch(API_BASE + "/files/upload", {
+      method: "POST",
+      headers: { "X-Session-Id": sessionId },
+      body: form,
+      signal: controller.signal,
+    });
+    const data = await parseJson(response);
+    if (!response.ok) {
+      throw new Error(readError(data, "Upload failed (HTTP " + response.status + ")."));
+    }
+    return data;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Upload timed out. The document API is unavailable or still starting. Please retry later.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
   }
-  return data;
 }
 
 export async function askDocument(question, sessionId) {
