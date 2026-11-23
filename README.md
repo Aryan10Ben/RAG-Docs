@@ -12,7 +12,7 @@ SourceLens is a minimalist document question-answering workspace. Upload a text-
 2. **Index:** A Node Function splits the extracted text into source-labelled chunks and calculates local, deterministic lexical vector embeddings. The frontend keeps those vectors in browser-session memory.
 3. **Retrieve:** The question is converted into a vector, then the API uses cosine similarity to find the top four matching chunks.
 4. **Answer:** The default mode selects a relevant sentence from the retrieved text, preserving the source citation. It makes no LLM call.
-5. **Optional generation:** With explicit provider and billing configuration, a Vercel AI Gateway model can write an answer grounded in the retrieved passages.
+5. **Optional generation:** With explicit server-side provider configuration, a Groq model (rate-limited free tier) or Vercel AI Gateway model can write an answer grounded in retrieved passages.
 6. **Evidence:** Retrieved source snippets and PDF page numbers are visible below the answer.
 
 **Accuracy about RAG:** Default lexical-vector retrieval plus extractive answers is a source-grounded QA baseline, **not** full LLM-powered retrieval-augmented generation and **not** learned semantic embeddings. The legacy Python backend still contains SentenceTransformers + FAISS + Groq RAG, but is not the hosted Vercel API. The hosted model-generation branch needs a provider that has been enabled and live-tested.
@@ -26,7 +26,7 @@ SourceLens is a minimalist document question-answering workspace. Upload a text-
 | Embeddings | Hashed lexical vectors (no external service) |
 | Retrieval | Top-4 cosine similarity over source-labelled chunks |
 | Default answer | Extractive answer sentence with document and page reference |
-| Optional AI answer | Gemini 2.5 Flash Lite through Vercel AI Gateway (disabled unless configured) |
+| Optional AI answer | Groq GPT-OSS 20B or Gemini 2.5 Flash Lite via Vercel AI Gateway (disabled unless configured) |
 | Hosting | Single Vercel project: static frontend + Functions |
 | Testing | Node unit/API tests, FastAPI tests, real hosted PDF E2E |
 
@@ -65,7 +65,11 @@ The test checks the PDF's fabricated certificate number **481726**, the indexed 
 
 The Vercel AI Gateway currently requires a valid credit card on file in this Vercel account. Its HTTP 403 is an account-level requirement, **not** evidence of a working LLM. Do not enable it or incur charges without approval.
 
-When Gateway billing and appropriate usage protection are arranged, enable a server-side environment variable named `RAG_GENERATION_PROVIDER` with value `vercel-gateway`, then redeploy and test. Keep the key/OIDC token out of client code. Without this flag, the hosted API answers by extracting document sentences and says so explicitly in its response.
+**Option A — Groq:** Create a Groq API key in your own Groq Console, then set `GROQ_API_KEY` and `RAG_GENERATION_PROVIDER=groq` as Vercel **server-side** environment variables. Default model: `openai/gpt-oss-20b`. Groq's Free plan has rate limits; check your account's limits. Redeploy and run the live test with `RAG_EXPECTED_ANSWER_MODE=llm`.
+
+**Option B — Vercel AI Gateway:** After the account owner approves billing and usage protection, set `RAG_GENERATION_PROVIDER=vercel-gateway`. The API uses the platform-issued OIDC token and an available model. Redeploy and verify that real inference works.
+
+Without either opt-in value, the hosted API returns source-extracted answers and labels them accordingly. Never put provider secrets in client code or ask users to paste them into a chat.
 
 ## Legacy Python backend
 
