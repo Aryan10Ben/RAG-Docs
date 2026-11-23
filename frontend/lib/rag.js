@@ -13,8 +13,9 @@ export function bad(message, status = 400) {
   return json({ detail: message }, status);
 }
 
-export async function gateway(path, payload) {
-  const token = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
+export async function gateway(path, payload, request) {
+  // Vercel may inject the OIDC JWT as a request header rather than an env var.
+  const token = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || request?.headers?.get("x-vercel-oidc-token");
   if (!token) {
     throw new Error("AI Gateway authentication is missing from this Vercel deployment.");
   }
