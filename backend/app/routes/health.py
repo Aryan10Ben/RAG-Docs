@@ -1,7 +1,13 @@
 from fastapi import APIRouter
 
-router = APIRouter()
+router = APIRouter(tags=["Health"])
+
 
 @router.get("/")
-def health_check():
-    return {"status": "ok"}
+def root():
+    return {"service": "sourcelens-api", "status": "ok"}
+
+
+@router.get("/health")
+def health():
+    return {"service": "sourcelens-api", "status": "ok", "version": "1.1.0"}
