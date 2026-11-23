@@ -11,8 +11,8 @@
 | Capability | Implementation |
 | --- | --- |
 | PDF upload | File type, signature, size (10 MB), and page-count (120) validation |
-| Semantic retrieval | SentenceTransformers \`all-MiniLM-L6-v2\` embeddings + FAISS cosine similarity |
-| Answers | Groq API using \`llama-3.1-8b-instant\`, restricted to retrieved passages |
+| Semantic retrieval | SentenceTransformers `all-MiniLM-L6-v2` embeddings + FAISS cosine similarity |
+| Answers | Groq API using `llama-3.1-8b-instant`, restricted to retrieved passages |
 | Evidence | Retrieved filename, page number, similarity score, and source snippet |
 | Session separation | Random browser session ID with an in-memory vector index per session |
 | Workspace UX | Drag/drop, upload state, suggested prompts, chat history, copy answer, responsive layout |
@@ -22,7 +22,7 @@
 
 ## Architecture
 
-\`\`\`text
+```text
 Browser (React / Vite)                    Vercel (static frontend)
     |   X-Session-Id                         |
     +--------------> FastAPI (Python host) <--+
@@ -40,13 +40,13 @@ Browser (React / Vite)                    Vercel (static frontend)
                  Groq LLM with context
                            |
              Answer + retrieved passages
-\`\`\`
+```
 
 The browser sends a random session ID on each request. The backend maintains an **in-memory** FAISS index scoped to that ID. The embedding model is loaded lazily. No files are written to disk by the revised upload route.
 
 ### Project layout
 
-\`\`\`text
+```text
 frontend/
   src/App.jsx              # Accessible upload/chat workflow and state
   src/App.css              # Responsive application styling
@@ -62,7 +62,7 @@ docs/
   INTERVIEW_GUIDE.md       # Explanations, trade-offs, evaluation plan
 .github/workflows/ci.yml   # React build/lint and backend pytest
 docker-compose.yml         # Container-based backend development
-\`\`\`
+```
 
 ## Run locally
 
@@ -70,7 +70,7 @@ docker-compose.yml         # Container-based backend development
 
 Requires Python 3.11+ and a Groq API key. The first request may download the embedding model and take time to load.
 
-\`\`\`bash
+```bash
 cd backend
 python -m venv .venv
 # macOS/Linux: source .venv/bin/activate
@@ -78,56 +78,56 @@ python -m venv .venv
 pip install -r requirements.txt
 # Set GROQ_API_KEY in your shell / runtime environment
 uvicorn app.main:app --reload --port 8000
-\`\`\`
+```
 
-Open \`http://localhost:8000/docs\` for OpenAPI documentation and \`http://localhost:8000/health\` for health status.
+Open `http://localhost:8000/docs` for OpenAPI documentation and `http://localhost:8000/health` for health status.
 
 ### 2. Start the frontend
 
-\`\`\`bash
+```bash
 cd frontend
 npm ci
 # Put VITE_API_BASE_URL=http://localhost:8000 in frontend/.env.local
 npm run dev
-\`\`\`
+```
 
-Open the printed Vite URL, normally \`http://localhost:5173\`.
+Open the printed Vite URL, normally `http://localhost:5173`.
 
 ### 3. Run checks
 
-\`\`\`bash
+```bash
 cd frontend && npm run lint && npm run build
 # In the repository root (with test dependencies installed):
 PYTHONPATH=backend python -m pytest -q backend/tests
-\`\`\`
+```
 
 ### API
 
 | Endpoint | Method | Description |
 | --- | --- | --- |
-| \`/health\` | GET | Lightweight health check |
-| \`/files/upload\` | POST | Multipart \`file\` + \`X-Session-Id\` header |
-| \`/chat/ask\` | POST | JSON \`{"question": "..." }\` + \`X-Session-Id\` header |
-| \`/files/session\` | DELETE | Clears the current session's indexed documents |
+| `/health` | GET | Lightweight health check |
+| `/files/upload` | POST | Multipart `file` + `X-Session-Id` header |
+| `/chat/ask` | POST | JSON `{"question": "..." }` + `X-Session-Id` header |
+| `/files/session` | DELETE | Clears the current session's indexed documents |
 
 A chat response has this shape:
 
-\`\`\`json
+```json
 {
   "answer": "Answer based on uploaded content...",
   "sources": [
     { "filename": "notes.pdf", "page": 2, "snippet": "Retrieved passage", "score": 0.81 }
   ]
 }
-\`\`\`
+```
 
 Source scores are **similarity scores, not confidence probabilities**. Source snippets represent retrieval evidence; the LLM's individual claims are not independently verified.
 
 ## Deployment
 
-- **Frontend:** Vercel project \`sourcelens-rag\`, GitHub \`Aryan10Ben/RAG-Docs\`, root directory \`frontend\`, framework Vite, build \`npm run build\`, output \`dist\`. Pushes to \`main\` deploy production; feature branches get previews.
-- **Backend:** A persistent Python/container hosting service (for example, Render). Deploy \`backend/\` using its Dockerfile and provide \`GROQ_API_KEY\` as a secret. Set \`CORS_ORIGINS\` to the allowed frontend origins; configure \`VITE_API_BASE_URL\` in Vercel if the API URL changes.
-- **Docker:** \`docker compose up --build\` from the repository root with \`GROQ_API_KEY\` set in your environment. Do not commit keys.
+- **Frontend:** Vercel project `sourcelens-rag`, GitHub `Aryan10Ben/RAG-Docs`, root directory `frontend`, framework Vite, build `npm run build`, output `dist`. Pushes to `main` deploy production; feature branches get previews.
+- **Backend:** A persistent Python/container hosting service (for example, Render). Deploy `backend/` using its Dockerfile and provide `GROQ_API_KEY` as a secret. Set `CORS_ORIGINS` to the allowed frontend origins; configure `VITE_API_BASE_URL` in Vercel if the API URL changes.
+- **Docker:** `docker compose up --build` from the repository root with `GROQ_API_KEY` set in your environment. Do not commit keys.
 - **CI:** GitHub Actions validates the frontend and tests backend request contracts.
 
 **Important:** Deploy the backend changes independently. Vercel's static React deployment does **not** deploy the heavyweight sentence-transformer/FAISS Python server. If the existing Render service is still on the old code, source metadata and session isolation are not yet live.
