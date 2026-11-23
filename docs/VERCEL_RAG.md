@@ -1,0 +1,61 @@
+# SourceLens Vercel RAG Deployment and Verification
+
+## 2026-11-24 current state
+
+The `design/thalius-inspired-minimal-v2` branch contains the minimal frontend and a new same-origin Vercel API. A live PDF integration test passed against the Vercel preview, including the known-answer fact `481726` and supporting source metadata.
+
+**Note:** The default answering mode is **extractive**, not a language model. Full LLM RAG is behind a deliberate opt-in and has not passed a live test because Vercel AI Gateway currently responds with HTTP 403 indicating a credit card is required.
+
+## API and request flow
+
+1. `POST /api/extract` — multipart PDF under 3.5 MB; FastAPI extracts page-aware text. Returns `{status, filename, pages, chunks}`.
+2. `POST /api/index` — `{chunks}`; returns `{status, model: 'local-hashed-lexical-v1', indexed}` with per-chunk normalized lexical vectors. No external API call.
+3. `POST /api/ask` — `{question, chunks: indexed}`; performs cosine similarity to rank the chunks; extracts a matching source sentence with citations.
+4. `GET /api/extract`, `/api/index`, `/api/ask` — health responses.
+
+Response fields: `answer`, `sources` (each has `filename`, `page`, `snippet`, `score`), `answer_mode` (`extractive` or `llm`), and `retrieval` metadata. The frontend must not call this `llm` unless the API actually reports that mode.
+
+## Limitations
+
+- This is a portfolio demo, not a private SaaS. No auth, persistence, durable vector database, or per-user security boundary.
+- Frontend keeps uploaded chunks/vectors in JS memory. Reloading loses them.
+- The embedding model is deterministic lexical hashing, not a trained semantic encoder. It cannot reliably match paraphrases and may miss context.
+- The default answer quotes source text. It cannot synthesize or reason like a generative LLM.
+- PDF extraction: text-based PDFs only; 3.5MB, 80 pages, 60 chunks per file; 180 chunks per browser session.
+- The backend uses one Vercel project and avoids the old Render URL. Old `backend/app` FastAPI/FAISS/Groq code remains separate from the hosted path.
+
+## How to enable full generated RAG after approval
+
+1. In Vercel account settings, review AI Gateway billing and add a payment method *only if you consent*. Establish usage budgets and/or request limits first; these API routes are public.
+2. In Vercel Project Settings > Environment Variables, set `RAG_GENERATION_PROVIDER=vercel-gateway` as a server-side variable for the intended environment.
+3. Confirm OIDC federation is enabled in project security settings. Do not expose OIDC or provider API keys in `VITE_*` variables.
+4. Deploy a preview and run the real integration test. Confirm `answer_mode='llm'`, accurate answer, and returned source passages.
+5. Run the browser upload/ask test and verify no CORS or client errors. Only then merge to production if full LLM RAG is required.
+
+AI Gateway returns a billing error (HTTP 403 requiring a valid card) from this account during the first real embedding attempt. Never treat a GET health-check as evidence that the model works.
+
+## Test commands
+
+```bash
+cd frontend
+npm ci
+npm run lint && npm test && npm run build
+
+# Back at repo root, after: pip install requests reportlab
+RAG_API_URL=https://YOUR-VERCEL-PREVIEW.vercel.app python backend/tests/live_vercel_rag_smoke.py
+```
+
+Full API test: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45243041438
+
+## Release checklist
+
+- [x] API serves on Vercel
+- [x] Real PDF extracted with page numbers
+- [x] Index vectors returned
+- [x] Relevant source retrieved
+- [x] Extractive answer matches the PDF's known fact
+- [x] Evidence filename and page included
+- [ ] Browser upload/answer UI verified on the same preview
+- [ ] Full LLM-generation backend authorized and verified
+- [ ] Usage limits / anti-abuse safeguards reviewed for paid AI
+- [ ] Merge reviewed changes into main
