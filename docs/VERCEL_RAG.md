@@ -4,7 +4,7 @@
 
 The `design/thalius-inspired-minimal-v2` branch contains the minimal frontend and a new same-origin Vercel API. A live PDF integration test passed against the Vercel preview, including the known-answer fact `481726` and supporting source metadata.
 
-**Note:** The default answering mode is **extractive**, not a language model. Full LLM RAG is behind a deliberate opt-in and has not passed a live test because Vercel AI Gateway currently responds with HTTP 403 indicating a credit card is required.
+**Note:** The default answering mode is **extractive**, not a language model. Full LLM RAG is behind a deliberate opt-in and has not passed a live test. Vercel AI Gateway currently responds with HTTP 403 indicating a credit card is required; alternatively, Groq supports its own rate-limited free API tier when a key is configured.
 
 ## API and request flow
 
@@ -33,6 +33,16 @@ Response fields: `answer`, `sources` (each has `filename`, `page`, `snippet`, `s
 5. Run the browser upload/ask test and verify no CORS or client errors. Only then merge to production if full LLM RAG is required.
 
 AI Gateway returns a billing error (HTTP 403 requiring a valid card) from this account during the first real embedding attempt. Never treat a GET health-check as evidence that the model works.
+
+## Alternative: Groq Free API without Vercel Gateway billing
+
+Create an API key at https://console.groq.com/keys in your own account. The Groq Free plan has strict usage limits; check https://console.groq.com/docs/rate-limits. In Vercel > sourcelens-rag > Settings > Environment Variables, securely add:
+
+- `GROQ_API_KEY` — **sensitive**, server-side; paste it only into the Vercel dashboard, never into this repository or chat.
+- `RAG_GENERATION_PROVIDER` — `groq`.
+- Optional: `GROQ_MODEL` — defaults to `openai/gpt-oss-20b` (current Groq model; older Llama 3.1 8B identifiers have been retired).
+
+Redeploy after setting variables, then run the live test with `RAG_EXPECTED_ANSWER_MODE=llm`. Until that test passes, do not claim live LLM RAG works. Public routes will need suitable abuse/rate limits before production use.
 
 ## Test commands
 
