@@ -195,6 +195,8 @@ export default function App() {
             <p>Transform PDFs into an interactive knowledge source. Upload a document, ask naturally, and explore the answers — with source references when available.</p>
           </section>
 
+          <div className="privacy-banner" role="note"><span>ⓘ</span><p><strong>Public demo:</strong> Please use non-sensitive PDFs only. Documents are processed by a separate hosted API without user accounts or durable privacy controls.</p></div>
+
           <div className="studio-grid">
             <section className="panel upload-panel" aria-label="Upload a document">
               <div className="panel-top"><div className="panel-icon">01</div><span>KNOWLEDGE SOURCE</span></div>
