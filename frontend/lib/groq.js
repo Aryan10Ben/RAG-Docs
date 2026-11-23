@@ -22,7 +22,9 @@ export async function generateWithGroq(messages, fetchImpl = fetch) {
         model,
         messages,
         temperature: 0.1,
-        max_tokens: 450,
+        max_completion_tokens: 850,
+        reasoning_effort: "low",
+        include_reasoning: false,
       }),
       signal: controller.signal,
     });
