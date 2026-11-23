@@ -1,150 +1,76 @@
-# SourceLens — Ask Questions Across Your Documents
+# SourceLens — PDF Answers With Verifiable Sources
 
-**SourceLens** is a document-intelligence workspace built around retrieval-augmented generation (RAG). It extracts text from a PDF, splits it into chunks, embeds the chunks, retrieves semantically similar passages for a question, and asks a language model to answer from those passages.
+SourceLens is a minimalist document question-answering workspace. Upload a text-based PDF, ask a question, and inspect passages and page references that support the answer.
 
-[**Live React frontend**](https://sourcelens-rag.vercel.app) · [**API source**](backend/app) · [**Interview walkthrough**](docs/INTERVIEW_GUIDE.md)
+**[Website](https://sourcelens-rag.vercel.app)** · [Vercel deployment notes](docs/VERCEL_RAG.md) · [Interview guide](docs/INTERVIEW_GUIDE.md)
 
-> **Demo status:** The React frontend is deployed on Vercel. The Python API is a separate service and must be deployed on a Python/container host (for example, Render). New server features are active only after the backend is redeployed. This is an educational demo **without authentication or durable storage**. Do not upload confidential documents.
+> **Preview vs production:** The new Vercel API and minimal interface are in the draft `design/thalius-inspired-minimal-v2` branch. Until merged into `main`, the production website may still use the old Render API. This README describes the new review branch.
 
-## Features
+## How it works on Vercel
 
-| Capability | Implementation |
+1. **Upload:** A Python/FastAPI Vercel Function accepts a text-based PDF and extracts text and page numbers using PyPDF2.
+2. **Index:** A Node Function splits the extracted text into source-labelled chunks and calculates local, deterministic lexical vector embeddings. The frontend keeps those vectors in browser-session memory.
+3. **Retrieve:** The question is converted into a vector, then the API uses cosine similarity to find the top four matching chunks.
+4. **Answer:** The default mode selects a relevant sentence from the retrieved text, preserving the source citation. It makes no LLM call.
+5. **Optional generation:** With explicit provider and billing configuration, a Vercel AI Gateway model can write an answer grounded in the retrieved passages.
+6. **Evidence:** Retrieved source snippets and PDF page numbers are visible below the answer.
+
+**Accuracy about RAG:** Default lexical-vector retrieval plus extractive answers is a source-grounded QA baseline, **not** full LLM-powered retrieval-augmented generation and **not** learned semantic embeddings. The legacy Python backend still contains SentenceTransformers + FAISS + Groq RAG, but is not the hosted Vercel API. The hosted model-generation branch needs a provider that has been enabled and live-tested.
+
+## Technical stack
+
+| Layer | Current Vercel review branch |
 | --- | --- |
-| PDF upload | File type, signature, size (10 MB), and page-count (120) validation |
-| Semantic retrieval | SentenceTransformers `all-MiniLM-L6-v2` embeddings + FAISS cosine similarity |
-| Answers | Groq API using `llama-3.1-8b-instant`, restricted to retrieved passages |
-| Evidence | Retrieved filename, page number, similarity score, and source snippet |
-| Session separation | Random browser session ID with an in-memory vector index per session |
-| Workspace UX | Drag/drop, upload state, suggested prompts, chat history, copy answer, responsive layout |
-| Engineering | FastAPI validation, React lint/build, pytest API contract checks, GitHub CI |
+| Frontend | React 19 + Vite, dark minimalist UI |
+| PDF parsing | Python FastAPI + PyPDF2 Vercel Function |
+| Embeddings | Hashed lexical vectors (no external service) |
+| Retrieval | Top-4 cosine similarity over source-labelled chunks |
+| Default answer | Extractive answer sentence with document and page reference |
+| Optional AI answer | Gemini 2.5 Flash Lite through Vercel AI Gateway (disabled unless configured) |
+| Hosting | Single Vercel project: static frontend + Functions |
+| Testing | Node unit/API tests, FastAPI tests, real hosted PDF E2E |
 
-**Supported format:** Text-based PDFs. Scanned PDFs require OCR and are not supported yet. Audio/video transcription is *not* available; the previous interface overstated this capability.
+## Limits and privacy
 
-## Architecture
+- Text-based PDFs only. OCR/scanned PDFs and audio/video are not implemented.
+- 3.5 MB per PDF, 80 pages, maximum 60 indexed chunks per file and 180 across the browser session.
+- Session vectors and conversation history are transient browser state; a page reload loses them.
+- No logins, permanent document storage, access controls, or production abuse prevention.
+- Use non-sensitive PDFs. Even though the demo does not intentionally store files, the PDF is processed by a serverless function, and optional LLM generation sends relevant text to a model provider.
+- Similarity scores measure passage overlap, not factual confidence. Check evidence for important questions.
 
-```text
-Browser (React / Vite)                    Vercel (static frontend)
-    |   X-Session-Id                         |
-    +--------------> FastAPI (Python host) <--+
-                           |
-                      PDF extraction
-                           |
-                Page-aware word chunks
-                           |
-             SentenceTransformers embeddings
-                           |
-                 FAISS index per session
-                           |
-             Question -> top-k retrieval
-                           |
-                 Groq LLM with context
-                           |
-             Answer + retrieved passages
-```
-
-The browser sends a random session ID on each request. The backend maintains an **in-memory** FAISS index scoped to that ID. The embedding model is loaded lazily. No files are written to disk by the revised upload route.
-
-### Project layout
-
-```text
-frontend/
-  src/App.jsx              # Workflow state and component composition
-  src/components/          # Sidebar, upload, questions, results
-  src/api/documents.js     # Fetch, timeout, response/error handling
-  src/lib/session.js       # Anonymous browser session identifier
-  src/App.css              # Responsive application styling
-  public/favicon.svg
-backend/
-  app/main.py              # FastAPI application and CORS
-  app/routes/              # Health, upload, and chat endpoints
-  app/services/chunker.py  # Text chunking
-  app/services/embeddings.py # Session-scoped FAISS retrieval
-  app/services/llm.py      # Retrieved context and Groq answer
-  tests/                   # API contract tests
-docs/
-  INTERVIEW_GUIDE.md       # Explanations, trade-offs, evaluation plan
-.github/workflows/ci.yml   # React build/lint and backend pytest
-docker-compose.yml         # Container-based backend development
-```
-
-## Run locally
-
-### 1. Start the backend
-
-Requires Python 3.11+ and a Groq API key. The first request may download the embedding model and take time to load.
-
-```bash
-cd backend
-python -m venv .venv
-# macOS/Linux: source .venv/bin/activate
-# Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-# Set GROQ_API_KEY in your shell / runtime environment
-uvicorn app.main:app --reload --port 8000
-```
-
-Open `http://localhost:8000/docs` for OpenAPI documentation and `http://localhost:8000/health` for health status.
-
-### 2. Start the frontend
+## Local development and checks
 
 ```bash
 cd frontend
 npm ci
-# Put VITE_API_BASE_URL=http://localhost:8000 in frontend/.env.local
 npm run dev
+npm run lint
+npm test
+npm run build
 ```
 
-Open the printed Vite URL, normally `http://localhost:5173`.
+Vite's dev server only hosts the frontend; deploy to Vercel or use a compatible Vercel development environment to exercise the serverless API.
 
-### 3. Run checks
+To verify the real hosted API with a generated synthetic PDF:
 
 ```bash
-cd frontend && npm run lint && npm run build
-# In the repository root (with test dependencies installed):
-PYTHONPATH=backend python -m pytest -q backend/tests
+pip install requests reportlab
+RAG_API_URL=https://YOUR-PREVIEW.vercel.app python backend/tests/live_vercel_rag_smoke.py
 ```
 
-### API
+The test checks the PDF's fabricated certificate number **481726**, the indexed passages, the answer, and its evidence. See [docs/VERCEL_RAG.md](docs/VERCEL_RAG.md) for exact API contracts and deployment steps.
 
-| Endpoint | Method | Description |
-| --- | --- | --- |
-| `/health` | GET | Lightweight health check |
-| `/files/upload` | POST | Multipart `file` + `X-Session-Id` header |
-| `/chat/ask` | POST | JSON `{"question": "..." }` + `X-Session-Id` header |
-| `/files/session` | DELETE | Clears the current session's indexed documents |
+## Optional generated answers
 
-A chat response has this shape:
+The Vercel AI Gateway currently requires a valid credit card on file in this Vercel account. Its HTTP 403 is an account-level requirement, **not** evidence of a working LLM. Do not enable it or incur charges without approval.
 
-```json
-{
-  "answer": "Answer based on uploaded content...",
-  "sources": [
-    { "filename": "notes.pdf", "page": 2, "snippet": "Retrieved passage", "score": 0.81 }
-  ]
-}
-```
+When Gateway billing and appropriate usage protection are arranged, enable a server-side environment variable named `RAG_GENERATION_PROVIDER` with value `vercel-gateway`, then redeploy and test. Keep the key/OIDC token out of client code. Without this flag, the hosted API answers by extracting document sentences and says so explicitly in its response.
 
-Source scores are **similarity scores, not confidence probabilities**. Source snippets represent retrieval evidence; the LLM's individual claims are not independently verified.
+## Legacy Python backend
 
-## Deployment
+The original Python FastAPI implementation in [`backend/`](backend/) uses a local SentenceTransformer encoder (`all-MiniLM-L6-v2`), FAISS, and Groq/Llama. That code is still available for local experimentation and its own tests, but it is not used by the new same-origin Vercel UI/API architecture.
 
-- **Frontend:** Vercel project `sourcelens-rag`, GitHub `Aryan10Ben/RAG-Docs`, root directory `frontend`, framework Vite, build `npm run build`, output `dist`. Pushes to `main` deploy production; feature branches get previews.
-- **Backend:** A persistent Python/container hosting service (for example, Render). Deploy `backend/` using its Dockerfile and provide `GROQ_API_KEY` as a secret. Set `CORS_ORIGINS` to the allowed frontend origins; configure `VITE_API_BASE_URL` in Vercel if the API URL changes.
-- **Docker:** `docker compose up --build` from the repository root with `GROQ_API_KEY` set in your environment. Do not commit keys.
-- **CI:** GitHub Actions validates the frontend and tests backend request contracts.
+## Attribution
 
-**Important:** Deploy the backend changes independently. Vercel's static React deployment does **not** deploy the heavyweight sentence-transformer/FAISS Python server. If the existing Render service is still on the old code, source metadata and session isolation are not yet live.
-
-## Current limitations and planned improvements
-
-1. This is a demo, not a multi-tenant production service: session IDs are not authentication and memory indices are not durable or shared between backend instances.
-2. Implement authentication, a persistent user-scoped vector database, rate limiting, and upload abuse protection before handling real customer data.
-3. Add OCR for scanned PDFs and verified audio transcription before advertising those file types.
-4. Add evaluation fixtures for retrieval recall@k, answer faithfulness, refusal quality, and latency; publish measured results only after running the evaluation.
-5. Add citations at claim-level and explicit retrieved-source highlighting.
-
-## Project history and attribution
-
-This repository began as a collaborative/adapted RAG document-Q&A project. The original license is **MIT**, copyright **2026 Jitendra Kumar Soni**, preserved in [LICENSE](LICENSE). The **SourceLens** redesign, session-scoped API changes, and documentation are subsequent contributions. Credit and source history should remain visible; evaluate individual contributions through Git history and pull requests.
-
-MIT licensed. See [LICENSE](LICENSE).
+This repository began as a collaborative/adapted PDF RAG Q&A project. The original **MIT license, copyright 2026 Jitendra Kumar Soni**, is preserved in [LICENSE](LICENSE). Subsequent SourceLens redesign and API changes are traceable in Git history and pull requests. Describe contributions accurately in interviews.
