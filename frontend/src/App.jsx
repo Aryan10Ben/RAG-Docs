@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { askDocument, MAX_FILE_BYTES, uploadDocument } from "./api/documents";
 import OrbitalBackdrop from "./components/OrbitalBackdrop";
-import { getSessionId } from "./lib/session";
 import "./App.css";
 
 const PROMPTS = [
@@ -113,7 +112,7 @@ function FileUpload({ selectedFile, onSelect, onUpload, busy, inputRef, compact 
         )}
       </div>
       <div className="upload-meta">
-        <span>PDF only</span><span className="meta-separator" /><span>Up to 10 MB</span>
+        <span>PDF only</span><span className="meta-separator" /><span>Up to 3.5 MB</span>
         {!compact && <><span className="meta-separator" /><span>Text-based documents</span></>}
       </div>
     </div>
@@ -202,9 +201,9 @@ function Feedback({ error, notice, onDismiss }) {
 }
 
 export default function App() {
-  const [sessionId] = useState(getSessionId);
   const [selectedFile, setSelectedFile] = useState(null);
   const [documents, setDocuments] = useState([]);
+  const [indexedChunks, setIndexedChunks] = useState([]);
   const [question, setQuestion] = useState("");
   const [conversations, setConversations] = useState([]);
   const [busy, setBusy] = useState("");
@@ -233,7 +232,7 @@ export default function App() {
     }
     if (file.size > MAX_FILE_BYTES) {
       setSelectedFile(null);
-      setError("The file is larger than 10 MB.");
+      setError("This PDF exceeds the 3.5 MB serverless upload limit.");
       return;
     }
     if (!file.size) {
@@ -250,7 +249,11 @@ export default function App() {
     setError("");
     setNotice("");
     try {
-      const data = await uploadDocument(selectedFile, sessionId);
+      const data = await uploadDocument(selectedFile);
+      if (indexedChunks.length + data.indexed.length > 180) {
+        throw new Error("This session already contains too much text. Refresh to start with new documents.");
+      }
+      setIndexedChunks((current) => [...current, ...data.indexed]);
       setDocuments((current) => [...current, {
         id: data.document_id || selectedFile.name + "-" + Date.now(),
         name: data.filename || selectedFile.name,
@@ -274,7 +277,7 @@ export default function App() {
     setError("");
     setNotice("");
     try {
-      const data = await askDocument(prompt, sessionId);
+      const data = await askDocument(prompt, indexedChunks);
       setConversations((current) => [...current, {
         id: Date.now() + Math.random(),
         question: prompt,
@@ -380,7 +383,7 @@ export default function App() {
 
       <footer className="site-footer">
         <span>© 2026 SourceLens</span>
-        <span>Demo only · Do not upload sensitive documents</span>
+        <span>Session-only demo · No sensitive documents</span>
         <a href="https://github.com/Aryan10Ben/RAG-Docs" target="_blank" rel="noreferrer">View source <Icon name="external" size={13} /></a>
       </footer>
     </div>
