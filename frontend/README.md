@@ -1,14 +1,21 @@
-# SourceLens Frontend
+# SourceLens Frontend + Vercel API
 
-React 19 + Vite workspace for PDF-based document question answering.
+React 19 / Vite minimal PDF upload and question-answer UI. This Vercel project deploys static assets **and** serverless PDF/Q&A endpoints.
 
 ## Development
 
-1. Run npm ci
-2. Copy .env.example to .env.local and configure the API base URL.
-3. Run npm run dev
-4. Run npm run lint && npm run build before committing.
+```bash
+npm ci
+npm run dev
+npm run lint
+npm test
+npm run build
+```
 
-Vercel project: https://sourcelens-rag.vercel.app
+Vite's dev server does not automatically emulate Vercel Functions. The deployed API consists of `api/extract.py` (FastAPI + PyPDF2), `api/index.js` (lexical vector index) and `api/ask.js` (source retrieval + answer).
 
-The API is a **separate Python/FastAPI service** and is not deployed by this Vite project. See the repository root README for API setup, security considerations, current limitations, and project attribution.
+**Default answer is extractive**, supported by PDF text. It is not LLM-generated. Optional AI generation requires an explicitly configured Vercel AI Gateway and verified billing. See [Vercel RAG notes](../docs/VERCEL_RAG.md).
+
+**Never upload confidential PDFs** to the public demo. Documents are not persistently stored by this example and the browser holds vectors in memory. No user authentication is provided.
+
+Project: https://sourcelens-rag.vercel.app
