@@ -24,5 +24,5 @@ jobs:
         run: pip install requests reportlab
       - name: Upload PDF, embed, retrieve, and verify answer
         env:
-          RAG_API_URL: https://sourcelens-alwy3cq0p-aryan-ben-project.vercel.app
+          RAG_API_URL: https://sourcelens-e3mm844ao-aryan-ben-project.vercel.app
         run: python backend/tests/live_vercel_rag_smoke.py
