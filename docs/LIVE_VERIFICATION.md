@@ -33,3 +33,15 @@ The current repository implements PDF extraction, chunking, SentenceTransformer 
 8. Merge the design branch into main **only after** the user story passes.
 
 This is a failed verification report, not a claim of successful release.
+
+## Update — Vercel-backed source-grounded QA verified (2026-11-24)
+
+The failed Render-service results above are historical and refer to the **old Render URL**, not the newly implemented Vercel backend.
+
+- Same-origin Vercel API: PDF extraction, lexical vector indexing, cosine retrieval and extractive answers all returned HTTP 200.
+- Hosted real PDF acceptance test: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45244610161 — PASS, verified answer 481726 from p.1.
+- Actual Chromium browser upload/ask test: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45244616746 — PASS, desktop and mobile.
+- React + Python checks: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45244623235 — PASS.
+- Live **LLM-based generation remains unverified**: Vercel AI Gateway returns HTTP 403 unless account billing is configured, and Groq requires a securely configured GROQ_API_KEY. The default hosted answer mode is extractive and is labelled as such.
+
+**Do not describe the extractive mode as live LLM RAG.** It is a working source-grounded QA baseline. Merge criteria for full LLM RAG remain conditional on an actual successful provider-backed question-answering test.
