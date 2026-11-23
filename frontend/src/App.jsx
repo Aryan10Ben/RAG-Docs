@@ -100,9 +100,12 @@ function FileUpload({ selectedFile, onSelect, onUpload, busy, inputRef, compact 
           onChange={(event) => onSelect(event.target.files?.[0])}
         />
         {selectedFile ? (
-          <button className="upload-action" type="button" onClick={onUpload} disabled={Boolean(busy)}>
-            {busy === "upload" ? <><span className="loader" /> Indexing document...</> : <>Analyze document <Icon name="arrow" size={17} /></>}
-          </button>
+          <div className="file-action-row">
+            <button className="change-file-action" type="button" onClick={() => inputRef.current?.click()} disabled={Boolean(busy)}>Change file</button>
+            <button className="upload-action" type="button" onClick={onUpload} disabled={Boolean(busy)}>
+              {busy === "upload" ? <><span className="loader" /> Indexing document...</> : <>Analyze document <Icon name="arrow" size={17} /></>}
+            </button>
+          </div>
         ) : (
           <button className="browse-action" type="button" onClick={() => inputRef.current?.click()} disabled={Boolean(busy)}>
             Browse files <Icon name="arrow" size={15} />
@@ -183,6 +186,17 @@ function AnswerFeed({ conversations, onCopy, copiedId }) {
           </div>
         </article>
       ))}
+    </div>
+  );
+}
+
+function Feedback({ error, notice, onDismiss }) {
+  if (!error && !notice) return null;
+  return (
+    <div className={"feedback" + (error ? " error" : " success")} role={error ? "alert" : "status"}>
+      <span className="feedback-icon"><Icon name={error ? "close" : "check"} size={15} /></span>
+      <span>{error || notice}</span>
+      <button type="button" onClick={onDismiss} aria-label="Dismiss notification"><Icon name="close" size={16} /></button>
     </div>
   );
 }
@@ -306,6 +320,7 @@ export default function App() {
             <h1>Ask your documents.<br /><span>Find what matters.</span></h1>
             <p className="hero-description">Upload a PDF. Ask a question. Get an answer grounded in your document.</p>
             <FileUpload selectedFile={selectedFile} onSelect={chooseFile} onUpload={uploadFile} busy={busy} inputRef={pickerRef} />
+            <Feedback error={error} notice={notice} onDismiss={() => { setError(""); setNotice(""); }} />
             <div className="landing-note"><Icon name="spark" size={14} /> Powered by retrieval-augmented generation</div>
           </section>
         ) : (
@@ -327,6 +342,7 @@ export default function App() {
                 <button className="pending-upload" type="button" onClick={uploadFile} disabled={busyNow}>{busy === "upload" ? "Indexing..." : "Index PDF"} <Icon name="arrow" size={15} /></button>
               </div>
             )}
+            <Feedback error={error} notice={notice} onDismiss={() => { setError(""); setNotice(""); }} />
             <div ref={feedRef}>
               <AnswerFeed conversations={conversations} onCopy={copyAnswer} copiedId={copiedId} />
             </div>
@@ -360,13 +376,6 @@ export default function App() {
           </section>
         )}
 
-        {(error || notice) && (
-          <div className={"feedback" + (error ? " error" : " success")} role={error ? "alert" : "status"}>
-            <span className="feedback-icon"><Icon name={error ? "close" : "check"} size={15} /></span>
-            <span>{error || notice}</span>
-            <button type="button" onClick={() => { setError(""); setNotice(""); }} aria-label="Dismiss notification"><Icon name="close" size={16} /></button>
-          </div>
-        )}
       </main>
 
       <footer className="site-footer">
