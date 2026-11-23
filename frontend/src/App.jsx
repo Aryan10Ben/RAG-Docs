@@ -273,7 +273,7 @@ export default function App() {
                 <div className="answer-header"><span className="answer-avatar">✦</span><span>DOCUMENT ASSISTANT</span><small>{item.seconds}s response</small></div>
                 <h3>{item.question}</h3>
                 <p className="answer-text">{item.answer}</p>
-                {item.sources.length > 0 && <div className="sources"><strong>Referenced passages</strong><div className="source-grid">{item.sources.map((source, index) => <div className="source-card" key={index}><span>{source.filename || source.document || "Document"}{source.page ? " · Page " + source.page : ""}</span>{source.snippet && <p>{source.snippet}</p>}</div>)}</div></div>}
+                {item.sources.length > 0 && <div className="sources"><strong>Retrieved passages</strong><div className="source-grid">{item.sources.map((source, index) => <div className="source-card" key={index}><span>{source.filename || source.document || "Document"}{source.page ? " · Page " + source.page : ""}</span>{source.snippet && <p>{source.snippet}</p>}</div>)}</div></div>}
                 <div className="answer-footer"><span>AI-generated — verify important details against the source.</span><button type="button" onClick={() => navigator.clipboard?.writeText(item.answer)}>Copy answer ↗</button></div>
               </article>
             ))}
