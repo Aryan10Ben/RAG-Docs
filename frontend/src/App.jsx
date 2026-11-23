@@ -175,7 +175,7 @@ function AnswerFeed({ conversations, onCopy, copiedId }) {
                 </div>
               )}
               <div className="answer-actions">
-                <span>AI-generated · Verify important details</span>
+                <span>{item.answer_mode === "llm" ? "AI-generated · Check cited passages" : "Extracted from your PDF · No AI generation"}</span>
                 <button type="button" onClick={() => onCopy(item)} aria-label="Copy answer">
                   <Icon name={copiedId === item.id ? "check" : "copy"} size={15} />
                   {copiedId === item.id ? "Copied" : "Copy"}
@@ -283,6 +283,7 @@ export default function App() {
         question: prompt,
         answer: data.answer || "No answer was returned.",
         sources: Array.isArray(data.sources) ? data.sources : [],
+        answer_mode: data.answer_mode || "extractive",
         seconds: data.seconds,
       }]);
       setQuestion("");
@@ -321,10 +322,10 @@ export default function App() {
           <section className="landing">
             <div className="eyebrow"><span className="eyebrow-dot" /> YOUR DOCUMENTS, MADE SEARCHABLE</div>
             <h1>Ask your documents.<br /><span>Find what matters.</span></h1>
-            <p className="hero-description">Upload a PDF. Ask a question. Get an answer grounded in your document.</p>
+            <p className="hero-description">Upload a PDF. Ask a question. Find the relevant evidence.</p>
             <FileUpload selectedFile={selectedFile} onSelect={chooseFile} onUpload={uploadFile} busy={busy} inputRef={pickerRef} />
             <Feedback error={error} notice={notice} onDismiss={() => { setError(""); setNotice(""); }} />
-            <div className="landing-note"><Icon name="spark" size={14} /> Powered by retrieval-augmented generation</div>
+            <div className="landing-note"><Icon name="spark" size={14} /> Source-grounded answers · AI generation optional</div>
           </section>
         ) : (
           <section className="studio">
