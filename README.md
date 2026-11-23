@@ -48,7 +48,10 @@ The browser sends a random session ID on each request. The backend maintains an 
 
 ```text
 frontend/
-  src/App.jsx              # Accessible upload/chat workflow and state
+  src/App.jsx              # Workflow state and component composition
+  src/components/          # Sidebar, upload, questions, results
+  src/api/documents.js     # Fetch, timeout, response/error handling
+  src/lib/session.js       # Anonymous browser session identifier
   src/App.css              # Responsive application styling
   public/favicon.svg
 backend/
