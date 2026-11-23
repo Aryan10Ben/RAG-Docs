@@ -1,10 +1,11 @@
 services:
-  backend:
-    build: .
-    container_name: rag-doc-qna-backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    volumes:
-      - ./uploads:/app/uploads
     environment:
-      - PYTHONPATH=/app
+      GROQ_API_KEY: ${GROQ_API_KEY:?Set GROQ_API_KEY in your shell first}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,https://sourcelens-rag.vercel.app}
+    restart: unless-stopped
