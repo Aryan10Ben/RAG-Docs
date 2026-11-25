@@ -58,4 +58,4 @@ Historical run: [Render smoke test failure](https://github.com/Aryan10Ben/RAG-Do
 
 The public demo has no authentication, permanent document store, OCR, or production-grade abuse safeguards. Its retrieval uses local lexical vectors rather than semantic FAISS in the deployed path. Use **non-sensitive PDF documents** only.
 
-For architecture, API definitions, live testing and provider setup, see [VERCEL_RAG.md](VERCEL_RAG.md). For resume-safe descriptions, see [INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md).
+For architecture, API definitions, live testing and provider setup, see [VERCEL_RAG.md](VERCEL_RAG.md).
