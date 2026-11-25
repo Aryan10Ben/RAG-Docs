@@ -6,12 +6,13 @@ import { useEffect, useRef } from "react";
  * Imperative SVG updates avoid React rerenders on every frame.
  */
 const RADIUS = 348;
+const POINT_COUNT = 168;
 const MERIDIAN_COUNT = 24;
 const MERIDIANS = Array.from({ length: MERIDIAN_COUNT }, (_, i) => i);
 const LATITUDES = [-72, -58, -44, -30, -16, 0, 16, 30, 44, 58, 72];
-const POINTS = Array.from({ length: 72 }, (_, index) => {
+const POINTS = Array.from({ length: POINT_COUNT }, (_, index) => {
   // Deterministic Fibonacci-sphere distribution, not random particles.
-  const latitude = Math.asin(1 - (2 * (index + 0.5)) / 72);
+  const latitude = Math.asin(1 - (2 * (index + 0.5)) / POINT_COUNT);
   const longitude = index * Math.PI * (3 - Math.sqrt(5));
   return { latitude, longitude };
 });
@@ -35,7 +36,7 @@ export default function OrbitalBackdrop() {
       meridians.forEach((ellipse, index) => {
         const phase = (index / MERIDIAN_COUNT) * Math.PI + angle;
         ellipse.setAttribute("rx", String(Math.max(1.5, Math.abs(Math.cos(phase)) * RADIUS)));
-        ellipse.style.strokeOpacity = String(0.12 + 0.23 * Math.max(0, Math.sin(phase)));
+        ellipse.style.strokeOpacity = String(0.17 + 0.29 * Math.max(0, Math.sin(phase)));
       });
       points.forEach((circle, index) => {
         const { latitude, longitude } = POINTS[index];
@@ -45,7 +46,7 @@ export default function OrbitalBackdrop() {
         const y = -RADIUS * Math.sin(latitude);
         circle.setAttribute("cx", x.toFixed(2));
         circle.setAttribute("cy", y.toFixed(2));
-        circle.style.opacity = (visibility < 0 ? 0.035 : 0.18 + 0.52 * visibility).toFixed(3);
+        circle.style.opacity = (visibility < 0 ? 0.03 : 0.21 + 0.59 * visibility).toFixed(3);
       });
       travelers.forEach((circle, index) => {
         // Tilted orbit, separate from the globe, with slow moving light points.
@@ -99,9 +100,9 @@ export default function OrbitalBackdrop() {
             <stop offset="1" stopColor="#080a0e" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="globe-stroke" x1="250" y1="0" x2="930" y2="730" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#4b8daa" stopOpacity=".42" />
-            <stop offset=".42" stopColor="#587bbd" stopOpacity=".7" />
-            <stop offset="1" stopColor="#8562aa" stopOpacity=".35" />
+            <stop stopColor="#5c9aab" stopOpacity=".66" />
+            <stop offset=".42" stopColor="#6588c2" stopOpacity=".86" />
+            <stop offset="1" stopColor="#9279b8" stopOpacity=".6" />
           </linearGradient>
           <linearGradient id="orbit-stroke" x1="180" y1="260" x2="1070" y2="500" gradientUnits="userSpaceOnUse">
             <stop stopColor="#3c7ea7" stopOpacity="0" />
@@ -127,7 +128,7 @@ export default function OrbitalBackdrop() {
           <circle r={RADIUS} fill="url(#globe-surface)" />
           <circle r={RADIUS} stroke="#577999" strokeOpacity=".26" strokeWidth=".8" />
           <g mask="url(#globe-fade)" clipPath="url(#globe-clip)">
-            <g stroke="url(#globe-stroke)" strokeWidth=".85">
+            <g stroke="url(#globe-stroke)" strokeWidth=".95">
               {MERIDIANS.map((position) => (
                 <ellipse key={position} data-meridian cx="0" cy="0" rx={RADIUS} ry={RADIUS} />
               ))}
@@ -140,7 +141,7 @@ export default function OrbitalBackdrop() {
                     cy={(-RADIUS * Math.sin(rad)).toFixed(1)}
                     rx={(RADIUS * Math.cos(rad)).toFixed(1)}
                     ry={(45 * Math.cos(rad)).toFixed(1)}
-                    strokeOpacity={Math.abs(latitude) > 50 ? ".14" : ".24"}
+                    strokeOpacity={Math.abs(latitude) > 50 ? ".18" : ".34"}
                   />
                 );
               })}
