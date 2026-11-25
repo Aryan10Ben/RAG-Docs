@@ -66,18 +66,42 @@ a { color: inherit; text-decoration: none; }
 .brand-mark > span:nth-child(1) { transform: translate(-3px,-1px); }
 .brand-mark > span:nth-child(2) { transform: translate(3px,1px); opacity: .65; }
 .brand-mark > span:nth-child(3) { width: 5px; height: 5px; background: #86a2ff; border: 0; transform: translate(0,0); }
-.nav-center { color: #778091; font-size: 9px; font-weight: 650; letter-spacing: 2px; margin-left: 30px; }
 .nav-link { display: inline-flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 600; color: #c8d0dd; padding: 10px 13px; border-radius: 999px; transition: background .2s, color .2s; }
 .nav-link:hover { color: #fff; background: rgba(255,255,255,.06); }
 
 .page-main { flex: 1; position: relative; z-index: 1; width: 100%; }
-.landing { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 1060px; margin: 0 auto; padding: clamp(88px, 11vh, 148px) 20px 100px; }
+.landing { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 1060px; margin: 0 auto; padding: clamp(86px, 12vh, 138px) 20px 88px; }
 .eyebrow { display: inline-flex; align-items: center; gap: 10px; color: #9faac4; font-weight: 650; font-size: 10px; letter-spacing: 2.15px; line-height: 1.5; }
 .eyebrow-dot { display: inline-block; flex: none; height: 6px; width: 6px; border-radius: 50%; background: #6f9aff; box-shadow: 0 0 0 5px rgba(49, 95, 234, .09), 0 0 18px rgba(49,95,234,.72); }
-.landing h1 { max-width: 970px; font-size: clamp(48px, 6.6vw, 88px); letter-spacing: -.073em; line-height: 1.085; font-weight: 620; margin: 23px 0 0; text-wrap: balance; }
-.landing h1 span { color: #adb7c8; }
-.hero-description { font-size: clamp(14px, 1.45vw, 17px); line-height: 1.75; color: #9ca4b5; margin: 26px 0 0; max-width: 560px; text-wrap: pretty; }
-.upload-stage { width: min(570px, 100%); margin: 49px auto 0; }
+.kinetic-hero { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.landing h1.kinetic-title {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center;
+  column-gap: .26em; row-gap: .06em;
+  max-width: 100%; font-size: clamp(45px, 7vw, 91px); letter-spacing: -.065em;
+  line-height: 1.12; font-weight: 620; margin: 0;
+}
+.kinetic-title > span {
+  display: inline-block; color: #bac3d3;
+  animation: kinetic-word 4.5s ease-in-out infinite;
+}
+.kinetic-title > span:nth-child(1) { animation-delay: 0s; }
+.kinetic-title > span:nth-child(2) { animation-delay: -3s; }
+.kinetic-title > span:nth-child(3) { animation-delay: -1.5s; }
+@keyframes kinetic-word {
+  0%, 27% { color: #f4f7ff; text-shadow: 0 0 24px rgba(102,146,255,.32); }
+  33.333%, 94% { color: #a0aabd; text-shadow: none; }
+  100% { color: #f4f7ff; text-shadow: 0 0 24px rgba(102,146,255,.32); }
+}
+.kinetic-track { width: 150px; height: 2px; margin-top: 27px; border-radius: 999px; overflow: hidden; background: rgba(140,160,203,.22); }
+.kinetic-track > span { display: block; width: 33.333%; height: 100%; border-radius: inherit; background: #7298ff; animation: kinetic-progress 4.5s steps(1,end) infinite; }
+@keyframes kinetic-progress {
+  0% { transform: translateX(0); }
+  33.333% { transform: translateX(100%); }
+  66.666% { transform: translateX(200%); }
+  100% { transform: translateX(0); }
+}
+.hero-description { font-size: clamp(14px, 1.45vw, 17px); line-height: 1.75; color: #9ca4b5; margin: 23px 0 0; max-width: 560px; text-wrap: pretty; }
+.upload-stage { width: min(570px, 100%); margin: 40px auto 0; }
 .drop-target {
   min-height: 252px;
   border: 1px dashed rgba(151,172,217,.33);
@@ -121,8 +145,6 @@ a { color: inherit; text-decoration: none; }
 .browse-action:disabled, .upload-action:disabled { opacity: .55; }
 .upload-meta { display: flex; gap: 11px; align-items: center; justify-content: center; margin-top: 17px; color: #757d8d; font-size: 11px; }
 .meta-separator { width: 3px; height: 3px; border-radius: 50%; background: #505967; }
-.landing-note { display: flex; align-items: center; gap: 9px; color: #656f80; font-size: 11px; margin-top: 57px; }
-.landing-note svg { color: #8094ca; }
 
 .site-footer { position: relative; z-index: 2; width: min(1050px, calc(100% - 48px)); margin: auto auto 0; padding: 19px 4px 23px; border-top: 1px solid rgba(214,225,246,.095); color: #747d8d; font-size: 11px; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; }
 .site-footer a { color: #a7b0c0; display: inline-flex; align-items: center; gap: 7px; }
@@ -207,8 +229,7 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 800px) {
   .orbital-mesh { top: -90px; width: 1100px; }
   .landing { padding-top: 94px; }
-  .landing h1 { font-size: clamp(45px, 8vw, 68px); }
-  .nav-center { display: none; }
+  .landing h1.kinetic-title { font-size: clamp(43px, 8vw, 68px); }
   .studio { padding-top: 65px; }
 }
 @media (max-width: 540px) {
@@ -219,13 +240,13 @@ a { color: inherit; text-decoration: none; }
   .nav-link { font-size: 11px; gap: 5px; padding: 8px; }
   .landing { padding: 93px 18px 80px; }
   .eyebrow { font-size: 8px; letter-spacing: 1.55px; }
-  .landing h1 { font-size: clamp(43px, 11vw, 59px); letter-spacing: -.065em; margin-top: 19px; }
+  .landing h1.kinetic-title { font-size: clamp(32px, 9.5vw, 49px); letter-spacing: -.06em; column-gap: .23em; }
+  .kinetic-track { width: 108px; margin-top: 21px; }
   .hero-description { font-size: 13px; margin-top: 21px; max-width: 350px; }
   .upload-stage { margin-top: 36px; }
   .drop-target { min-height: 247px; border-radius: 16px; padding: 24px 16px; }
   .drop-target strong { font-size: 14px; }
   .upload-meta { font-size: 10px; gap: 9px; }
-  .landing-note { margin-top: 39px; font-size: 10px; }
   .site-footer { width: calc(100% - 32px); padding-bottom: 20px; justify-content: center; text-align: center; font-size: 10px; }
   .site-footer > span:nth-child(2) { flex: 1 0 100%; order: 3; }
   .studio { width: calc(100% - 28px); padding-top: 62px; padding-bottom: 82px; }
@@ -245,6 +266,8 @@ a { color: inherit; text-decoration: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+  .kinetic-title > span { animation: none !important; color: #f4f6fa; text-shadow: none; }
+  .kinetic-track > span { animation: none !important; width: 100%; }
 }
 
 .file-action-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; }
