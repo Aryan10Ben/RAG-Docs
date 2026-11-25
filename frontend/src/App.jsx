@@ -48,15 +48,6 @@ function Icon({ name, size = 20 }) {
   }
 }
 
-function Brand() {
-  return (
-    <a className="brand" href="#top" aria-label="SourceLens homepage">
-      <span className="brand-mark" aria-hidden="true"><span /><span /><span /></span>
-      <span>source<span className="brand-accent">lens</span><span className="brand-stop">.</span></span>
-    </a>
-  );
-}
-
 function FileUpload({ selectedFile, onSelect, onUpload, busy, inputRef, compact = false }) {
   const [dragging, setDragging] = useState(false);
 
@@ -309,7 +300,7 @@ export default function App() {
       <OrbitalBackdrop />
       <header className="site-header">
         <nav className="nav-pill" aria-label="Main navigation">
-          <Brand />
+          <span className="nav-location">PDF <span aria-hidden="true">/</span> WORKSPACE</span>
           <a className="nav-link" href="https://github.com/Aryan10Ben/RAG-Docs" target="_blank" rel="noreferrer">
             GitHub <Icon name="external" size={15} />
           </a>
@@ -320,8 +311,10 @@ export default function App() {
         {!hasDocs ? (
           <section className="landing">
             <div className="kinetic-hero">
-              <h1 className="kinetic-title">
-                <span>Upload.</span>{" "}<span>Ask.</span>{" "}<span>Find.</span>
+              <h1 className="kinetic-title" aria-label="Upload. Ask. Find.">
+                <span className="hero-word hero-word-upload">Upload.</span>{" "}
+                <span className="hero-word hero-word-ask">A<span className="ask-s">s</span>k.</span>{" "}
+                <span className="hero-word hero-word-find">Find.</span>
               </h1>
               <div className="kinetic-track" aria-hidden="true"><span /></div>
               <p className="hero-description">Upload a PDF. Ask a question. Find answers.</p>
@@ -385,7 +378,7 @@ export default function App() {
       </main>
 
       <footer className="site-footer">
-        <span>© 2026 SourceLens</span>
+        <span>© 2026 · PDF workspace</span>
         <span>Session-only demo · No sensitive documents</span>
         <a href="https://github.com/Aryan10Ben/RAG-Docs" target="_blank" rel="noreferrer">View source <Icon name="external" size={13} /></a>
       </footer>
