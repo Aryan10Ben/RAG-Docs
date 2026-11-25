@@ -101,6 +101,10 @@ async def run():
         mobile_page = await mobile.new_page()
         await mobile_page.goto(BASE_URL, wait_until="domcontentloaded", timeout=35000)
         await expect(mobile_page.locator(".landing h1")).to_be_visible()
+        scan_reduced = await mobile_page.locator(".drop-target").evaluate("(el) => getComputedStyle(el, \"::before\").animationName")
+        assert scan_reduced == "none", "Upload scan ignored reduced-motion setting"
+        brand_reduced = await mobile_page.locator(".brand-orbit").evaluate("(el) => getComputedStyle(el).animationName")
+        assert brand_reduced == "none", "SourceLens orbit ignored reduced-motion setting"
         reduced = await mobile_page.locator(".hero-word-upload").evaluate("(el) => getComputedStyle(el).animationName")
         assert reduced == "none", "Reduced-motion preference ignored"
         fixed = mobile_page.locator("[data-meridian]").nth(4)
