@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
  * Imperative SVG updates avoid React rerenders on every frame.
  */
 const RADIUS = 348;
+const REVOLUTION_MS = 86000; // one deliberately slow, continuous turn
 const POINT_COUNT = 168;
 const MERIDIAN_COUNT = 24;
 const MERIDIANS = Array.from({ length: MERIDIAN_COUNT }, (_, i) => i);
@@ -32,11 +33,11 @@ export default function OrbitalBackdrop() {
     let reduced = media.matches;
 
     const draw = (time) => {
-      const angle = reduced ? 0.45 : time * Math.PI * 2 / 68000;
+      const angle = reduced ? 0.45 : time * Math.PI * 2 / REVOLUTION_MS;
       meridians.forEach((ellipse, index) => {
         const phase = (index / MERIDIAN_COUNT) * Math.PI + angle;
         ellipse.setAttribute("rx", String(Math.max(1.5, Math.abs(Math.cos(phase)) * RADIUS)));
-        ellipse.style.strokeOpacity = String(0.17 + 0.29 * Math.max(0, Math.sin(phase)));
+        ellipse.style.strokeOpacity = String(0.12 + 0.26 * Math.max(0, Math.sin(phase)));
       });
       points.forEach((circle, index) => {
         const { latitude, longitude } = POINTS[index];
@@ -46,11 +47,11 @@ export default function OrbitalBackdrop() {
         const y = -RADIUS * Math.sin(latitude);
         circle.setAttribute("cx", x.toFixed(2));
         circle.setAttribute("cy", y.toFixed(2));
-        circle.style.opacity = (visibility < 0 ? 0.03 : 0.21 + 0.59 * visibility).toFixed(3);
+        circle.style.opacity = (visibility < 0 ? 0.025 : 0.14 + 0.61 * visibility).toFixed(3);
       });
       travelers.forEach((circle, index) => {
         // Tilted orbit, separate from the globe, with slow moving light points.
-        const t = (reduced ? 0.75 : time * 0.00007) + Math.floor(index / 2) * Math.PI;
+        const t = (reduced ? 0.75 : time * 0.000055) + Math.floor(index / 2) * Math.PI;
         const px = 600 + 460 * Math.cos(t);
         const py = 346 + 160 * Math.sin(t) - 0.13 * (px - 600);
         circle.setAttribute("cx", px.toFixed(2));
@@ -59,7 +60,7 @@ export default function OrbitalBackdrop() {
     };
 
     const tick = (time) => {
-      if (!reduced && time - previous > 32 && !document.hidden) {
+      if (!reduced && time - previous > 20 && !document.hidden) {
         draw(time);
         previous = time;
       }
@@ -95,25 +96,25 @@ export default function OrbitalBackdrop() {
       >
         <defs>
           <radialGradient id="globe-surface">
-            <stop offset="0" stopColor="#152035" stopOpacity=".31" />
-            <stop offset=".72" stopColor="#0b1220" stopOpacity=".15" />
-            <stop offset="1" stopColor="#080a0e" stopOpacity="0" />
+            <stop offset="0" stopColor="#101728" stopOpacity=".24" />
+            <stop offset=".72" stopColor="#0b0e18" stopOpacity=".12" />
+            <stop offset="1" stopColor="#050506" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="globe-stroke" x1="250" y1="0" x2="930" y2="730" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#5c9aab" stopOpacity=".66" />
-            <stop offset=".42" stopColor="#6588c2" stopOpacity=".86" />
-            <stop offset="1" stopColor="#9279b8" stopOpacity=".6" />
+            <stop stopColor="#3d8296" stopOpacity=".53" />
+            <stop offset=".42" stopColor="#68b6c7" stopOpacity=".73" />
+            <stop offset="1" stopColor="#9880d2" stopOpacity=".53" />
           </linearGradient>
           <linearGradient id="orbit-stroke" x1="180" y1="260" x2="1070" y2="500" gradientUnits="userSpaceOnUse">
             <stop stopColor="#3c7ea7" stopOpacity="0" />
-            <stop offset=".3" stopColor="#62c8d2" stopOpacity=".39" />
-            <stop offset=".67" stopColor="#6478bc" stopOpacity=".31" />
-            <stop offset="1" stopColor="#9777bb" stopOpacity=".04" />
+            <stop offset=".3" stopColor="#5abac8" stopOpacity=".28" />
+            <stop offset=".67" stopColor="#6878c5" stopOpacity=".26" />
+            <stop offset="1" stopColor="#a17dd3" stopOpacity=".06" />
           </linearGradient>
           <radialGradient id="signal-glow">
-            <stop stopColor="#d7fcf4" stopOpacity=".85" />
-            <stop offset=".3" stopColor="#5ab9dd" stopOpacity=".45" />
-            <stop offset="1" stopColor="#5ab9dd" stopOpacity="0" />
+            <stop stopColor="#d2f9fa" stopOpacity=".8" />
+            <stop offset=".3" stopColor="#6bbbd6" stopOpacity=".32" />
+            <stop offset="1" stopColor="#6077c4" stopOpacity="0" />
           </radialGradient>
           <radialGradient id="mesh-fade">
             <stop stopColor="white" stopOpacity=".87" />
@@ -126,7 +127,7 @@ export default function OrbitalBackdrop() {
 
         <g className="globe-core" transform="translate(600 345)">
           <circle r={RADIUS} fill="url(#globe-surface)" />
-          <circle r={RADIUS} stroke="#577999" strokeOpacity=".26" strokeWidth=".8" />
+          <circle r={RADIUS} stroke="#577392" strokeOpacity=".2" strokeWidth=".8" />
           <g mask="url(#globe-fade)" clipPath="url(#globe-clip)">
             <g stroke="url(#globe-stroke)" strokeWidth=".95">
               {MERIDIANS.map((position) => (
@@ -148,7 +149,7 @@ export default function OrbitalBackdrop() {
             </g>
             <g>
               {POINTS.map((_, index) => (
-                <circle key={index} data-point r={index % 7 === 0 ? "2.3" : "1.35"} fill={index % 9 === 0 ? "#f6e9d2" : index % 4 === 0 ? "#a68bc8" : "#65bcd1"} />
+                <circle key={index} data-point r={index % 7 === 0 ? "2.3" : "1.35"} fill={index % 9 === 0 ? "#c8e2eb" : index % 4 === 0 ? "#9c83d1" : "#63afc7"} />
               ))}
             </g>
           </g>
@@ -167,7 +168,7 @@ export default function OrbitalBackdrop() {
         {[0, 1].map((index) => (
           <g key={index}>
             <circle data-traveler r="15" fill="url(#signal-glow)" />
-            <circle data-traveler r="2.3" fill={index === 0 ? "#b1e2df" : "#b19ee1"} />
+            <circle data-traveler r="2.3" fill={index === 0 ? "#b4e1e5" : "#b3a4ef"} />
           </g>
         ))}
       </svg>
