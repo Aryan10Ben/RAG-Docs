@@ -1,6 +1,6 @@
 # SourceLens — Legacy Python Semantic RAG Backend
 
-[Main project README](../README.md) · [Active Vercel architecture](../docs/VERCEL_RAG.md) · [Interview guide](../docs/INTERVIEW_GUIDE.md)
+[Main project README](../README.md) · [Active Vercel architecture](../docs/VERCEL_RAG.md)
 
 > [!WARNING]
 > **This directory is a separate, legacy/experimental backend. It is NOT the API used by the public SourceLens Vercel website.** The live site uses `frontend/api/` for PDF extraction, hashed lexical-vector retrieval, and extractive answers. Do not assume this heavy Python stack is deployed or that Groq-backed generation has been verified online.
@@ -89,7 +89,6 @@ The lightweight unit/API suite validates contracts and selected stubs, **not** a
 | --- | --- |
 | Try the public deployed SourceLens app | [Vercel demo](https://sourcelens-rag.vercel.app) |
 | Understand and run semantic retrieval + FAISS locally | This `backend/` package |
-| Learn exactly what was shipped, with honest resume claims | [Interview guide](../docs/INTERVIEW_GUIDE.md) |
 
 ### Attribution
 
