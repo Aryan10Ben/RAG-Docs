@@ -1,60 +1,174 @@
+import { useEffect, useRef } from "react";
+
 /**
- * Original SVG geometry inspired by celestial maps.
- * No external imagery, brand assets, or animation libraries are required.
- * Decorative: the background is hidden from assistive technology.
+ * Original mathematical globe, not a copied image or brand mark.
+ * Longitudes and depth-lit surface points orbit at a measured, calm pace.
+ * Imperative SVG updates avoid React rerenders on every frame.
  */
-const MERIDIANS = Array.from({ length: 23 }, (_, index) => index - 11);
-const LATITUDES = Array.from({ length: 13 }, (_, index) => index - 6);
+const RADIUS = 348;
+const MERIDIAN_COUNT = 24;
+const MERIDIANS = Array.from({ length: MERIDIAN_COUNT }, (_, i) => i);
+const LATITUDES = [-72, -58, -44, -30, -16, 0, 16, 30, 44, 58, 72];
+const POINTS = Array.from({ length: 72 }, (_, index) => {
+  // Deterministic Fibonacci-sphere distribution, not random particles.
+  const latitude = Math.asin(1 - (2 * (index + 0.5)) / 72);
+  const longitude = index * Math.PI * (3 - Math.sqrt(5));
+  return { latitude, longitude };
+});
 
 export default function OrbitalBackdrop() {
+  const globeRef = useRef(null);
+
+  useEffect(() => {
+    const svg = globeRef.current;
+    if (!svg) return undefined;
+    const meridians = [...svg.querySelectorAll("[data-meridian]")];
+    const points = [...svg.querySelectorAll("[data-point]")];
+    const travelers = [...svg.querySelectorAll("[data-traveler]")];
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let frame = 0;
+    let previous = -100;
+    let reduced = media.matches;
+
+    const draw = (time) => {
+      const angle = reduced ? 0.45 : time * Math.PI * 2 / 68000;
+      meridians.forEach((ellipse, index) => {
+        const phase = (index / MERIDIAN_COUNT) * Math.PI + angle;
+        ellipse.setAttribute("rx", String(Math.max(1.5, Math.abs(Math.cos(phase)) * RADIUS)));
+        ellipse.style.strokeOpacity = String(0.12 + 0.23 * Math.max(0, Math.sin(phase)));
+      });
+      points.forEach((circle, index) => {
+        const { latitude, longitude } = POINTS[index];
+        const theta = longitude + angle;
+        const visibility = Math.cos(theta) * Math.cos(latitude);
+        const x = RADIUS * Math.cos(latitude) * Math.sin(theta);
+        const y = -RADIUS * Math.sin(latitude);
+        circle.setAttribute("cx", x.toFixed(2));
+        circle.setAttribute("cy", y.toFixed(2));
+        circle.style.opacity = (visibility < 0 ? 0.035 : 0.18 + 0.52 * visibility).toFixed(3);
+      });
+      travelers.forEach((circle, index) => {
+        // Tilted orbit, separate from the globe, with slow moving light points.
+        const t = (reduced ? 0.75 : time * 0.00007) + index * Math.PI;
+        const px = 600 + 460 * Math.cos(t);
+        const py = 346 + 160 * Math.sin(t) - 0.13 * (px - 600);
+        circle.setAttribute("cx", px.toFixed(2));
+        circle.setAttribute("cy", py.toFixed(2));
+      });
+    };
+
+    const tick = (time) => {
+      if (!reduced && time - previous > 32 && !document.hidden) {
+        draw(time);
+        previous = time;
+      }
+      if (!reduced) frame = window.requestAnimationFrame(tick);
+    };
+
+    const onPreference = (event) => {
+      reduced = event.matches;
+      window.cancelAnimationFrame(frame);
+      draw(0);
+      if (!reduced) frame = window.requestAnimationFrame(tick);
+    };
+
+    draw(0);
+    if (!reduced) frame = window.requestAnimationFrame(tick);
+    media.addEventListener("change", onPreference);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      media.removeEventListener("change", onPreference);
+    };
+  }, []);
+
   return (
     <div className="orbital-backdrop" aria-hidden="true">
+      <div className="orbital-dotfield" />
       <div className="orbital-halo" />
-      <svg className="orbital-mesh" viewBox="0 0 1440 680" fill="none" preserveAspectRatio="xMidYMid meet">
+      <svg
+        ref={globeRef}
+        className="orbital-mesh"
+        viewBox="0 0 1200 780"
+        fill="none"
+        preserveAspectRatio="xMidYMid meet"
+      >
         <defs>
-          <radialGradient id="orbital-glow" cx="0" cy="0" r="1" gradientTransform="translate(720 235) rotate(90) scale(400 750)" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#304C8B" stopOpacity=".38" />
-            <stop offset=".55" stopColor="#17253F" stopOpacity=".16" />
-            <stop offset="1" stopColor="#0A0B0E" stopOpacity="0" />
+          <radialGradient id="globe-surface">
+            <stop offset="0" stopColor="#152035" stopOpacity=".31" />
+            <stop offset=".72" stopColor="#0b1220" stopOpacity=".15" />
+            <stop offset="1" stopColor="#080a0e" stopOpacity="0" />
           </radialGradient>
-          <radialGradient id="mesh-opacity" cx="0" cy="0" r="1" gradientTransform="translate(720 250) rotate(90) scale(350 730)" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="white" stopOpacity=".85" />
-            <stop offset=".64" stopColor="white" stopOpacity=".7" />
-            <stop offset="1" stopColor="black" stopOpacity="0" />
+          <linearGradient id="globe-stroke" x1="250" y1="0" x2="930" y2="730" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#4b8daa" stopOpacity=".42" />
+            <stop offset=".42" stopColor="#587bbd" stopOpacity=".7" />
+            <stop offset="1" stopColor="#8562aa" stopOpacity=".35" />
+          </linearGradient>
+          <linearGradient id="orbit-stroke" x1="180" y1="260" x2="1070" y2="500" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#3c7ea7" stopOpacity="0" />
+            <stop offset=".3" stopColor="#62c8d2" stopOpacity=".39" />
+            <stop offset=".67" stopColor="#6478bc" stopOpacity=".31" />
+            <stop offset="1" stopColor="#9777bb" stopOpacity=".04" />
+          </linearGradient>
+          <radialGradient id="signal-glow">
+            <stop stopColor="#d7fcf4" stopOpacity=".85" />
+            <stop offset=".3" stopColor="#5ab9dd" stopOpacity=".45" />
+            <stop offset="1" stopColor="#5ab9dd" stopOpacity="0" />
           </radialGradient>
-          <mask id="orbital-fade">
-            <rect width="1440" height="680" fill="url(#mesh-opacity)" />
-          </mask>
+          <radialGradient id="mesh-fade">
+            <stop stopColor="white" stopOpacity=".87" />
+            <stop offset=".64" stopColor="white" stopOpacity=".6" />
+            <stop offset="1" stopColor="black" stopOpacity=".12" />
+          </radialGradient>
+          <mask id="globe-fade"><circle cx="600" cy="345" r="350" fill="url(#mesh-fade)" /></mask>
+          <clipPath id="globe-clip"><circle cx="600" cy="345" r="348" /></clipPath>
         </defs>
-        <ellipse cx="720" cy="235" rx="720" ry="400" fill="url(#orbital-glow)" />
-        <g mask="url(#orbital-fade)" stroke="#879BC0" strokeWidth=".75" strokeOpacity=".33">
-          <ellipse cx="720" cy="248" rx="650" ry="280" />
-          {MERIDIANS.map((position) => {
-            const radians = (position / 12) * (Math.PI / 2);
-            return (
-              <ellipse
-                key={"meridian-" + position}
-                cx="720"
-                cy="248"
-                rx={Math.max(8, Math.cos(radians) * 650)}
-                ry="280"
-              />
-            );
-          })}
-          {LATITUDES.map((position) => {
-            const t = position / 7;
-            const scale = Math.sqrt(1 - t * t);
-            return (
-              <ellipse
-                key={"latitude-" + position}
-                cx="720"
-                cy={248 + t * 280}
-                rx={650 * scale}
-                ry={Math.max(7, 30 * scale)}
-              />
-            );
-          })}
+
+        <g className="globe-core" transform="translate(600 345)">
+          <circle r={RADIUS} fill="url(#globe-surface)" />
+          <circle r={RADIUS} stroke="#577999" strokeOpacity=".26" strokeWidth=".8" />
+          <g mask="url(#globe-fade)" clipPath="url(#globe-clip)">
+            <g stroke="url(#globe-stroke)" strokeWidth=".85">
+              {MERIDIANS.map((position) => (
+                <ellipse key={position} data-meridian cx="0" cy="0" rx={RADIUS} ry={RADIUS} />
+              ))}
+              {LATITUDES.map((latitude) => {
+                const rad = latitude * Math.PI / 180;
+                return (
+                  <ellipse
+                    key={latitude}
+                    cx="0"
+                    cy={(-RADIUS * Math.sin(rad)).toFixed(1)}
+                    rx={(RADIUS * Math.cos(rad)).toFixed(1)}
+                    ry={(45 * Math.cos(rad)).toFixed(1)}
+                    strokeOpacity={Math.abs(latitude) > 50 ? ".14" : ".24"}
+                  />
+                );
+              })}
+            </g>
+            <g>
+              {POINTS.map((_, index) => (
+                <circle key={index} data-point r={index % 7 === 0 ? "2.3" : "1.35"} fill={index % 9 === 0 ? "#f6e9d2" : index % 4 === 0 ? "#a68bc8" : "#65bcd1"} />
+              ))}
+            </g>
+          </g>
         </g>
+
+        <ellipse
+          cx="600"
+          cy="346"
+          rx="460"
+          ry="160"
+          stroke="url(#orbit-stroke)"
+          strokeWidth=".85"
+          transform="rotate(-7.4 600 346)"
+          strokeDasharray="2 8"
+        />
+        {[0, 1].map((index) => (
+          <g key={index}>
+            <circle data-traveler r="15" fill="url(#signal-glow)" />
+            <circle data-traveler r="2.3" fill={index === 0 ? "#b1e2df" : "#b19ee1"} />
+          </g>
+        ))}
       </svg>
       <div className="orbital-vignette" />
     </div>
