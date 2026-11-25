@@ -1,13 +1,14 @@
 import { ANSWER_MODEL, bad, cosine, gateway, json, safeText } from "../lib/rag.js";
 import { extractiveAnswer, lexicalEmbedding, LOCAL_MODEL } from "../lib/local-retrieval.js";
 import { DEFAULT_GROQ_MODEL, generateWithGroq } from "../lib/groq.js";
+import { DEFAULT_GEMINI_MODEL, generateWithGemini } from "../lib/gemini.js";
 
 export async function GET() {
   return json({
     status: "ok",
     service: "sourcelens-ask",
     default_mode: "extractive",
-    optional_llm: [ANSWER_MODEL, DEFAULT_GROQ_MODEL],
+    optional_llm: [DEFAULT_GEMINI_MODEL, DEFAULT_GROQ_MODEL, ANSWER_MODEL],
   });
 }
 
@@ -55,7 +56,7 @@ export async function POST(request) {
 
   // LLM generation is explicitly opt-in; public demo traffic must not silently use paid inference.
   const provider = process.env.RAG_GENERATION_PROVIDER || "extractive";
-  if (provider !== "vercel-gateway" && provider !== "groq") {
+  if (provider !== "vercel-gateway" && provider !== "groq" && provider !== "gemini") {
     return json({
       ...base,
       answer: extractiveAnswer(question, hits),
@@ -81,6 +82,10 @@ export async function POST(request) {
     let model;
     if (provider === "groq") {
       const completion = await generateWithGroq(messages);
+      answer = completion.answer;
+      model = completion.model;
+    } else if (provider === "gemini") {
+      const completion = await generateWithGemini(messages);
       answer = completion.answer;
       model = completion.model;
     } else {
