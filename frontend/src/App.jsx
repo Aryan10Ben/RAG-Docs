@@ -392,7 +392,7 @@ export default function App() {
       </main>
 
       <footer className="site-footer">
-        <span>© 2026 · PDF workspace</span>
+        <span>© 2026 SourceLens</span>
         <span>Session-only demo · No sensitive documents</span>
         <a href="https://github.com/Aryan10Ben/RAG-Docs" target="_blank" rel="noreferrer">View source <Icon name="external" size={13} /></a>
       </footer>
