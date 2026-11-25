@@ -1,0 +1,28 @@
+name: Vercel hosted RAG end-to-end
+
+on:
+  push:
+    branches:
+      - design/thalius-inspired-minimal-v2
+    paths:
+      - backend/tests/live_vercel_rag_smoke.py
+      - .github/workflows/vercel-rag-e2e.yml
+
+permissions:
+  contents: read
+
+jobs:
+  real-pdf-rag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test tools
+        run: pip install requests reportlab
+      - name: Upload PDF, embed, retrieve, and verify answer
+        env:
+          RAG_API_URL: https://sourcelens-q1zvbo691-aryan-ben-project.vercel.app
+        run: python backend/tests/live_vercel_rag_smoke.py

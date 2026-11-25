@@ -26,6 +26,9 @@ jobs:
       - name: Lint
         run: npm run lint
         working-directory: frontend
+      - name: Unit test RAG indexing and retrieval
+        run: npm test
+        working-directory: frontend
       - name: Build
         run: npm run build
         working-directory: frontend

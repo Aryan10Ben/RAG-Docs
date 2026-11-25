@@ -1,0 +1,45 @@
+name: Production PDF Q&A acceptance
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production:
+    name: Live PDF API and Chromium browser checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RAG_API_URL: https://sourcelens-rag.vercel.app
+    steps:
+      - name: Check out released code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Configure Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install verification dependencies
+        run: python -m pip install requests reportlab playwright
+      - name: Await deployed SourceLens Vercel Functions
+        run: python backend/tests/wait_for_vercel.py
+      - name: Verify real PDF upload, extraction, retrieval and cited answer
+        run: python backend/tests/live_vercel_rag_smoke.py
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: Verify actual browser upload, drag/drop and question answering
+        run: python backend/tests/live_vercel_ui_smoke.py
+      - name: Save UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sourcelens-production-acceptance
+          path: |
+            sourcelens-kinetic-hero.png
+            sourcelens-desktop-proof.png
+            sourcelens-drag-drop-proof.png
+            sourcelens-mobile-proof.png
+          if-no-files-found: ignore

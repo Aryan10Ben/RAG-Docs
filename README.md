@@ -1,150 +1,160 @@
-# SourceLens — Ask Questions Across Your Documents
+<div align="center">
 
-**SourceLens** is a document-intelligence workspace built around retrieval-augmented generation (RAG). It extracts text from a PDF, splits it into chunks, embeds the chunks, retrieves semantically similar passages for a question, and asks a language model to answer from those passages.
+# SourceLens
 
-[**Live React frontend**](https://sourcelens-rag.vercel.app) · [**API source**](backend/app) · [**Interview walkthrough**](docs/INTERVIEW_GUIDE.md)
+### Upload. Ask. Find.
 
-> **Demo status:** The React frontend is deployed on Vercel. The Python API is a separate service and must be deployed on a Python/container host (for example, Render). New server features are active only after the backend is redeployed. This is an educational demo **without authentication or durable storage**. Do not upload confidential documents.
+**A document-grounded PDF question-answering workspace.**  
+Upload a PDF, retrieve relevant passages, and inspect concise answers with page-level evidence.
 
-## Features
+[**Live demo**](https://sourcelens-rag.vercel.app) · [**Architecture & API**](docs/VERCEL_RAG.md) · [**Interview notes**](docs/INTERVIEW_GUIDE.md) · [**Report an issue**](https://github.com/Aryan10Ben/RAG-Docs/issues)
 
-| Capability | Implementation |
-| --- | --- |
-| PDF upload | File type, signature, size (10 MB), and page-count (120) validation |
-| Semantic retrieval | SentenceTransformers `all-MiniLM-L6-v2` embeddings + FAISS cosine similarity |
-| Answers | Groq API using `llama-3.1-8b-instant`, restricted to retrieved passages |
-| Evidence | Retrieved filename, page number, similarity score, and source snippet |
-| Session separation | Random browser session ID with an in-memory vector index per session |
-| Workspace UX | Drag/drop, upload state, suggested prompts, chat history, copy answer, responsive layout |
-| Engineering | FastAPI validation, React lint/build, pytest API contract checks, GitHub CI |
+[![Quality checks](https://github.com/Aryan10Ben/RAG-Docs/actions/workflows/ci.yml/badge.svg)](https://github.com/Aryan10Ben/RAG-Docs/actions/workflows/ci.yml)
+![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white)
+![Vercel](https://img.shields.io/badge/Hosted%20on-Vercel-161616?logo=vercel&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-6e80b7)
 
-**Supported format:** Text-based PDFs. Scanned PDFs require OCR and are not supported yet. Audio/video transcription is *not* available; the previous interface overstated this capability.
+</div>
 
-## Architecture
+---
 
-```text
-Browser (React / Vite)                    Vercel (static frontend)
-    |   X-Session-Id                         |
-    +--------------> FastAPI (Python host) <--+
-                           |
-                      PDF extraction
-                           |
-                Page-aware word chunks
-                           |
-             SentenceTransformers embeddings
-                           |
-                 FAISS index per session
-                           |
-             Question -> top-k retrieval
-                           |
-                 Groq LLM with context
-                           |
-             Answer + retrieved passages
+> [!IMPORTANT]
+> **Live deployment status:** The published default is **source-grounded, extractive PDF Q&A** using local lexical vector representations and cosine retrieval. It has been tested end to end. Optional **LLM-generated answers** using Gemini, Groq, or Vercel AI Gateway are implemented behind server-side configuration, but are **not enabled or live-verified** without provider credentials. Extractive Q&A is not the same as fully generative RAG.
+
+## ✨ What you can do
+
+| Capability | How it works | Status |
+| :--- | :--- | :--- |
+| PDF upload | Choose a file or drag and drop it into a translucent upload panel | ✅ Verified |
+| Text extraction | Validate and parse selectable PDF text with page metadata | ✅ Verified |
+| Passage indexing | Split into overlapping chunks; generate 512-dimension **hashed lexical vectors** | ✅ Verified |
+| Document retrieval | Rank passages using cosine similarity (top 4) | ✅ Verified |
+| Grounded answers | Extract a matching sentence from the retrieved content | ✅ Verified |
+| Source references | Display filename, page number, and relevant text excerpt | ✅ Verified |
+| Conversational workspace | Ask multiple questions; keep indexed documents within the tab | ✅ Verified |
+| Generated answers | Optional Gemini Flash-Lite / Groq GPT-OSS / Vercel Gateway | ⚙️ Requires API setup |
+| Persistent multi-user storage | User accounts, access control, durable vector database | Not implemented |
+
+## 🖥️ Experience
+
+A deliberately compact, dark interface: **matte-black background**, an original slowly revolving orbital globe, animated *Upload · Ask · Find* typography, SourceLens branding, and a translucent PDF dropzone with a gentle light sweep. Motion-sensitive visitors receive a reduced-motion version.
+
+The upload flow leads to a focused reading workspace: document chips, a question composer, answer history, and expandable source passages. The interface explicitly distinguishes **extracted** and **AI-generated** answers.
+
+**Try it:** [sourcelens-rag.vercel.app](https://sourcelens-rag.vercel.app)  
+**Repository:** [github.com/Aryan10Ben/RAG-Docs](https://github.com/Aryan10Ben/RAG-Docs)
+
+## 🧠 Architecture
+
+```mermaid
+flowchart TD
+    A["PDF in the browser"] --> B["Vercel Python Function /api/extract"]
+    B --> C["PyPDF2: page text + overlapping chunks"]
+    C --> D["Vercel Node Function /api/index"]
+    D --> E["512-dimensional lexical vectors"]
+    E --> F["Ephemeral index in browser memory"]
+    G["User question"] --> H["Vercel Node Function /api/ask"]
+    F --> H
+    H --> I["Cosine-similarity retrieval: top 4 passages"]
+    I --> J{"Configured generation provider?"}
+    J -- "Default: no" --> K["Extract relevant PDF sentence"]
+    J -- "Explicit opt-in" --> L["Gemini / Groq / AI Gateway"]
+    K --> M["Answer + source filename / page / snippet"]
+    L --> M
 ```
 
-The browser sends a random session ID on each request. The backend maintains an **in-memory** FAISS index scoped to that ID. The embedding model is loaded lazily. No files are written to disk by the revised upload route.
+**Why this design?** Vercel Functions are stateless; session vectors stay in the current browser tab and are supplied with each question. The default indexing and answering path needs **no third-party model key** and does not depend on the old Render deployment.
 
-### Project layout
+**Retrieval precision:** The active live version uses **lexical hashing**, not a pretrained semantic embedding network. It can miss paraphrases and does not perform LLM reasoning unless a provider is explicitly enabled. A separate, legacy Python implementation under [`backend/`](backend/) includes SentenceTransformers, FAISS, and Groq, but is **not** the deployed Vercel pipeline.
 
-```text
-frontend/
-  src/App.jsx              # Workflow state and component composition
-  src/components/          # Sidebar, upload, questions, results
-  src/api/documents.js     # Fetch, timeout, response/error handling
-  src/lib/session.js       # Anonymous browser session identifier
-  src/App.css              # Responsive application styling
-  public/favicon.svg
-backend/
-  app/main.py              # FastAPI application and CORS
-  app/routes/              # Health, upload, and chat endpoints
-  app/services/chunker.py  # Text chunking
-  app/services/embeddings.py # Session-scoped FAISS retrieval
-  app/services/llm.py      # Retrieved context and Groq answer
-  tests/                   # API contract tests
-docs/
-  INTERVIEW_GUIDE.md       # Explanations, trade-offs, evaluation plan
-.github/workflows/ci.yml   # React build/lint and backend pytest
-docker-compose.yml         # Container-based backend development
-```
+## 🛠️ Stack
 
-## Run locally
+| Layer | Technology |
+| :--- | :--- |
+| Frontend | React 19, Vite, modern CSS, SVG animation |
+| PDF ingestion | Python, FastAPI, PyPDF2, Vercel Functions |
+| Index & retrieval | JavaScript, hashed lexical embeddings, cosine similarity |
+| Default answer | Extractive, sourced passages |
+| Optional generation | Google Gemini 2.5 Flash-Lite / Groq GPT-OSS 20B / Vercel AI Gateway |
+| Deployment | Vercel (single project for static app and API functions) |
+| Verification | GitHub Actions, Node built-in test runner, pytest, Playwright, real-PDF smoke tests |
 
-### 1. Start the backend
-
-Requires Python 3.11+ and a Groq API key. The first request may download the embedding model and take time to load.
+## 🚀 Run locally
 
 ```bash
-cd backend
-python -m venv .venv
-# macOS/Linux: source .venv/bin/activate
-# Windows PowerShell: .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-# Set GROQ_API_KEY in your shell / runtime environment
-uvicorn app.main:app --reload --port 8000
-```
-
-Open `http://localhost:8000/docs` for OpenAPI documentation and `http://localhost:8000/health` for health status.
-
-### 2. Start the frontend
-
-```bash
-cd frontend
+git clone https://github.com/Aryan10Ben/RAG-Docs.git
+cd RAG-Docs/frontend
 npm ci
-# Put VITE_API_BASE_URL=http://localhost:8000 in frontend/.env.local
 npm run dev
 ```
 
-Open the printed Vite URL, normally `http://localhost:5173`.
+The Vite dev server provides the **UI only**. Because `/api/extract`, `/api/index`, and `/api/ask` are Vercel Functions, use the Vercel development environment (`vercel dev` with the project linked and the Vercel CLI installed) or deploy a preview to test uploads and answers. No LLM API key is needed for the extractive mode.
 
-### 3. Run checks
+Validate the frontend and retrieval logic:
 
 ```bash
-cd frontend && npm run lint && npm run build
-# In the repository root (with test dependencies installed):
-PYTHONPATH=backend python -m pytest -q backend/tests
+npm run lint
+npm test
+npm run build
 ```
 
-### API
+For the actual hosted PDF-to-answer integration test, from the repository root:
 
-| Endpoint | Method | Description |
-| --- | --- | --- |
-| `/health` | GET | Lightweight health check |
-| `/files/upload` | POST | Multipart `file` + `X-Session-Id` header |
-| `/chat/ask` | POST | JSON `{"question": "..." }` + `X-Session-Id` header |
-| `/files/session` | DELETE | Clears the current session's indexed documents |
-
-A chat response has this shape:
-
-```json
-{
-  "answer": "Answer based on uploaded content...",
-  "sources": [
-    { "filename": "notes.pdf", "page": 2, "snippet": "Retrieved passage", "score": 0.81 }
-  ]
-}
+```bash
+python -m pip install requests reportlab
+RAG_API_URL=https://sourcelens-rag.vercel.app python backend/tests/live_vercel_rag_smoke.py
 ```
 
-Source scores are **similarity scores, not confidence probabilities**. Source snippets represent retrieval evidence; the LLM's individual claims are not independently verified.
+The smoke test creates a **synthetic PDF** with a known answer (`481726`), then checks the live extraction, indexing, answer mode, answer value and source excerpts. It does **not** upload private files.
 
-## Deployment
+## ✅ Verification
 
-- **Frontend:** Vercel project `sourcelens-rag`, GitHub `Aryan10Ben/RAG-Docs`, root directory `frontend`, framework Vite, build `npm run build`, output `dist`. Pushes to `main` deploy production; feature branches get previews.
-- **Backend:** A persistent Python/container hosting service (for example, Render). Deploy `backend/` using its Dockerfile and provide `GROQ_API_KEY` as a secret. Set `CORS_ORIGINS` to the allowed frontend origins; configure `VITE_API_BASE_URL` in Vercel if the API URL changes.
-- **Docker:** `docker compose up --build` from the repository root with `GROQ_API_KEY` set in your environment. Do not commit keys.
-- **CI:** GitHub Actions validates the frontend and tests backend request contracts.
+The latest release-candidate checks include real uploads through Chromium and direct HTTP integration tests:
 
-**Important:** Deploy the backend changes independently. Vercel's static React deployment does **not** deploy the heavyweight sentence-transformer/FAISS Python server. If the existing Render service is still on the old code, source metadata and session isolation are not yet live.
+- **Browser:** PDF picker, drag/drop, invalid-file rejection, multiple factual questions, refusal of an unsupported question, source citations, mobile viewport and uncaught JS errors.
+- **API:** `POST /api/extract` → `POST /api/index` → `POST /api/ask` against the hosted deployment, verifying a known answer and its page.
+- **CI:** React lint/build, Node retrieval/provider-adapter tests, and Python API tests.
 
-## Current limitations and planned improvements
+Evidence: [browser acceptance](https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45679291385) · [real-PDF API test](https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45679302905).
 
-1. This is a demo, not a multi-tenant production service: session IDs are not authentication and memory indices are not durable or shared between backend instances.
-2. Implement authentication, a persistent user-scoped vector database, rate limiting, and upload abuse protection before handling real customer data.
-3. Add OCR for scanned PDFs and verified audio transcription before advertising those file types.
-4. Add evaluation fixtures for retrieval recall@k, answer faithfulness, refusal quality, and latency; publish measured results only after running the evaluation.
-5. Add citations at claim-level and explicit retrieved-source highlighting.
+These results establish the **extractive** workflow, not the availability or quality of an unconfigured LLM provider.
 
-## Project history and attribution
+## 🔌 Optional LLM-generated answers
 
-This repository began as a collaborative/adapted RAG document-Q&A project. The original license is **MIT**, copyright **2026 Jitendra Kumar Soni**, preserved in [LICENSE](LICENSE). The **SourceLens** redesign, session-scoped API changes, and documentation are subsequent contributions. Credit and source history should remain visible; evaluate individual contributions through Git history and pull requests.
+The server-side `RAG_GENERATION_PROVIDER` variable defaults to extractive mode when unset.
 
-MIT licensed. See [LICENSE](LICENSE).
+| Provider | Environment variables | Notes |
+| :--- | :--- | :--- |
+| Google Gemini | `RAG_GENERATION_PROVIDER=gemini`, `GEMINI_API_KEY` | Default model: `gemini-2.5-flash-lite`; account-specific free quota |
+| Groq | `RAG_GENERATION_PROVIDER=groq`, `GROQ_API_KEY` | Default: `openai/gpt-oss-20b`; rate-limited free plan |
+| Vercel AI Gateway | `RAG_GENERATION_PROVIDER=vercel-gateway` | Requires eligible gateway access and billing setup |
+
+**Add secrets in the Vercel dashboard, never in Git, in a `VITE_*` variable, or inside a public message.** Review free-tier data handling and add rate limiting before allowing model-backed public requests. After configuring a provider, run the live test with `RAG_EXPECTED_ANSWER_MODE=llm` and confirm source fidelity before describing the generated mode as operational.
+
+See [deployment and API instructions](docs/VERCEL_RAG.md).
+
+## ⚠️ Scope and limitations
+
+- **PDFs:** selectable text only; scanned/image-only PDFs need OCR (not implemented).
+- **Limits:** up to **3.5 MB**, **80 pages**, **60 chunks per upload**, **180 chunks per browser session**.
+- **Privacy:** no sign-in or document ACLs. Do **not** upload confidential documents to this public demo.
+- **Storage:** vector embeddings and conversation history are session-only in tab memory; refresh clears them.
+- **Retrieval:** lexical similarity can overlook semantically equivalent wording; retrieved passages are evidence, not guaranteed truth.
+- **Production hardening still needed:** authentication, abuse controls, durable storage, observability, OCR, evaluation datasets, and optional learned semantic embeddings.
+
+## 🗺️ Next steps
+
+Better semantic/hybrid retrieval · Evaluation of recall@k and faithfulness · Optional OCR · Authenticated persistent document sessions · Rate limiting and file-processing safeguards · Live verification of a configured LLM.
+
+## 📄 Attribution and license
+
+This repository evolved from an **existing collaborative, MIT-licensed PDF RAG application**. The original [MIT license](LICENSE) and copyright **© 2026 Jitendra Kumar Soni** are preserved. The interface redesign, Vercel-based source-grounded API, documentation, and regression tests have an auditable Git history. Please credit prior contributors when describing the project.
+
+<div align="center">
+
+**Built for exploring documents with verifiable evidence.**
+
+[Live demo](https://sourcelens-rag.vercel.app) · [Technical documentation](docs/VERCEL_RAG.md) · [Source code](https://github.com/Aryan10Ben/RAG-Docs)
+
+</div>

@@ -1,54 +1,64 @@
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://rag-doc-q-a.onrender.com").replace(/\/$/, "");
-export const MAX_FILE_BYTES = 10 * 1024 * 1024;
+/** Same-origin, serverless RAG transport. No Render dependency or client-side API keys. */
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+export const MAX_FILE_BYTES = 3_500_000;
+const MAX_SESSION_CHUNKS = 180;
 
-async function parseJson(response) {
-  return response.json().catch(() => ({}));
-}
-
-function readError(data, fallback) {
-  if (typeof data?.detail === "string") return data.detail;
-  if (typeof data?.error === "string") return data.error;
-  return fallback;
-}
-
-/** The API is hosted separately from the static Vercel frontend. */
-export async function uploadDocument(file, sessionId) {
-  const form = new FormData();
-  form.append("file", file);
-  const response = await fetch(API_BASE + "/files/upload", {
-    method: "POST",
-    headers: { "X-Session-Id": sessionId },
-    body: form,
-  });
-  const data = await parseJson(response);
-  if (!response.ok) {
-    throw new Error(readError(data, "Upload failed (HTTP " + response.status + ")."));
-  }
-  return data;
-}
-
-export async function askDocument(question, sessionId) {
+async function requestJson(path, options, timeoutMs = 60000) {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 60000);
-  const started = performance.now();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(API_BASE + "/chat/ask", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Session-Id": sessionId },
-      body: JSON.stringify({ question }),
-      signal: controller.signal,
-    });
-    const data = await parseJson(response);
+    const response = await fetch(API_BASE + path, { ...options, signal: controller.signal });
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(readError(data, "Answer request failed (HTTP " + response.status + ")."));
+      const detail = data?.detail;
+      throw new Error(typeof detail === "string" ? detail : "The RAG service returned HTTP " + response.status + ".");
     }
-    return { ...data, seconds: ((performance.now() - started) / 1000).toFixed(1) };
+    return data;
   } catch (error) {
-    if (error?.name === "AbortError") {
-      throw new Error("The request timed out after 60 seconds. The model service may be waking up. Please try again.");
-    }
+    if (error?.name === "AbortError") throw new Error("Request timed out. Please retry.");
+    if (error instanceof TypeError) throw new Error("Unable to reach the document service.");
     throw error;
   } finally {
     window.clearTimeout(timeout);
   }
+}
+
+export async function uploadDocument(file) {
+  const form = new FormData();
+  form.append("file", file);
+  const extracted = await requestJson("/api/extract", { method: "POST", body: form }, 65000);
+  if (!Array.isArray(extracted?.chunks) || !extracted.chunks.length) {
+    throw new Error("No extractable text found in this PDF.");
+  }
+  const indexed = await requestJson("/api/index", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chunks: extracted.chunks }),
+  }, 65000);
+  if (!Array.isArray(indexed?.indexed) || indexed.indexed.length !== extracted.chunks.length) {
+    throw new Error("The vector index was not generated correctly.");
+  }
+  return {
+    document_id: crypto.randomUUID(),
+    filename: extracted.filename || file.name,
+    pages: extracted.pages,
+    chunks_added: indexed.indexed.length,
+    indexed: indexed.indexed,
+  };
+}
+
+export async function askDocument(question, chunks) {
+  if (!Array.isArray(chunks) || !chunks.length) {
+    throw new Error("Upload a PDF first.");
+  }
+  if (chunks.length > MAX_SESSION_CHUNKS) {
+    throw new Error("Document session reached the 180-chunk limit.");
+  }
+  const started = performance.now();
+  const result = await requestJson("/api/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, chunks }),
+  }, 65000);
+  return { ...result, seconds: ((performance.now() - started) / 1000).toFixed(1) };
 }
