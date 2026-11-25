@@ -61,13 +61,23 @@ RAG_API_URL=https://YOUR-PREVIEW.vercel.app python backend/tests/live_vercel_rag
 
 The test checks the PDF's fabricated certificate number **481726**, the indexed passages, the answer, and its evidence. See [docs/VERCEL_RAG.md](docs/VERCEL_RAG.md) for exact API contracts and deployment steps.
 
+## Free-tier Gemini LLM option
+
+Google's Gemini 2.5 Flash-Lite supports a rate-limited Free API tier, subject to your Google AI Studio project's eligibility, active quotas, and model availability. The API key must be **server-side only**; never put it in GitHub, client-side Vite variables, or a chat message. Google notes Free-tier prompts may be used to improve its products; do not submit confidential PDFs.
+
+1. Open https://aistudio.google.com/apikey, log in, and create a Gemini API key in a free eligible project.
+2. In Vercel project `sourcelens-rag` > Settings > Environment Variables add `GEMINI_API_KEY` (Sensitive) and `RAG_GENERATION_PROVIDER=gemini` for the preview environment.
+3. Optionally set `GEMINI_MODEL=gemini-2.5-flash-lite`; this is the default.
+4. Redeploy the preview so the serverless API sees the new environment variables.
+5. Re-run a live synthetic-PDF test with `RAG_EXPECTED_ANSWER_MODE=llm`. Without a successful provider-backed test, do not claim that Gemini generation is live. The extractive default remains operational.
+
 ## Optional generated answers
 
 The Vercel AI Gateway currently requires a valid credit card on file in this Vercel account. Its HTTP 403 is an account-level requirement, **not** evidence of a working LLM. Do not enable it or incur charges without approval.
 
-**Option A — Groq:** Create a Groq API key in your own Groq Console, then set `GROQ_API_KEY` and `RAG_GENERATION_PROVIDER=groq` as Vercel **server-side** environment variables. Default model: `openai/gpt-oss-20b`. Groq's Free plan has rate limits; check your account's limits. Redeploy and run the live test with `RAG_EXPECTED_ANSWER_MODE=llm`.
+**Option B — Groq:** Create a Groq API key in your own Groq Console, then set `GROQ_API_KEY` and `RAG_GENERATION_PROVIDER=groq` as Vercel **server-side** environment variables. Default model: `openai/gpt-oss-20b`. Groq's Free plan has rate limits; check your account's limits. Redeploy and run the live test with `RAG_EXPECTED_ANSWER_MODE=llm`.
 
-**Option B — Vercel AI Gateway:** After the account owner approves billing and usage protection, set `RAG_GENERATION_PROVIDER=vercel-gateway`. The API uses the platform-issued OIDC token and an available model. Redeploy and verify that real inference works.
+**Option C — Vercel AI Gateway:** After the account owner approves billing and usage protection, set `RAG_GENERATION_PROVIDER=vercel-gateway`. The API uses the platform-issued OIDC token and an available model. Redeploy and verify that real inference works.
 
 Without either opt-in value, the hosted API returns source-extracted answers and labels them accordingly. Never put provider secrets in client code or ask users to paste them into a chat.
 
