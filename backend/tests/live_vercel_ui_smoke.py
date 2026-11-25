@@ -47,7 +47,16 @@ async def run():
         page.on("pageerror", lambda error: page_errors.append(str(error)))
         page.on("response", lambda response: server_responses.append((response.url, response.status)))
         await page.goto(BASE_URL, wait_until="domcontentloaded", timeout=35000)
-        await expect(page.locator(".landing h1")).to_contain_text("Ask your documents")
+        await expect(page.locator(".kinetic-title")).to_have_text("Upload. Ask. Find.")
+        await expect(page.locator(".hero-description")).to_have_text("Upload a PDF. Ask a question. Find answers.")
+        await expect(page.locator(".kinetic-track")).to_be_visible()
+        assert await page.locator(".kinetic-title > span").count() == 3
+        for obsolete in ("DOCUMENT INTELLIGENCE", "YOUR DOCUMENTS, MADE SEARCHABLE", "Find what matters.", "AI generation optional"):
+            assert obsolete not in await page.locator("body").inner_text(), "Obsolete hero copy: " + obsolete
+        animation = await page.locator(".kinetic-title > span").first.evaluate("(el) => getComputedStyle(el).animationName")
+        assert animation == "kinetic-word", "Missing typography animation"
+        await page.screenshot(path="sourcelens-kinetic-hero.png", full_page=True, animations="allow")
+        print("PASS: Kinetic hero and simplified copy", flush=True)
         print("PASS: Desktop page renders", flush=True)
         await page.locator('input[aria-label="Choose a PDF document"]').set_input_files({
             "name": "silver-compass.pdf",
@@ -71,10 +80,12 @@ async def run():
         print("PASS: All three real API requests returned HTTP 200", flush=True)
         await page.screenshot(path="sourcelens-desktop-proof.png", full_page=True)
 
-        mobile = await browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True)
+        mobile = await browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, reduced_motion="reduce")
         mobile_page = await mobile.new_page()
         await mobile_page.goto(BASE_URL, wait_until="domcontentloaded", timeout=35000)
         await expect(mobile_page.locator(".landing h1")).to_be_visible()
+        reduced = await mobile_page.locator(".kinetic-title > span").first.evaluate("(el) => getComputedStyle(el).animationName")
+        assert reduced == "none", "Reduced-motion preference ignored"
         overflow = await mobile_page.evaluate("document.documentElement.scrollWidth > window.innerWidth + 4")
         assert not overflow, "Mobile viewport has horizontal overflow"
         await mobile_page.screenshot(path="sourcelens-mobile-proof.png", full_page=True)
