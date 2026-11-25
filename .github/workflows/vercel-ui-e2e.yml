@@ -26,7 +26,7 @@ jobs:
         run: python -m playwright install --with-deps chromium
       - name: Exercise real PDF upload and Q&A browser flow
         env:
-          RAG_API_URL: https://sourcelens-561y979da-aryan-ben-project.vercel.app
+          RAG_API_URL: https://sourcelens-1zv0qkiz5-aryan-ben-project.vercel.app
         run: python backend/tests/live_vercel_ui_smoke.py
       - name: Upload visual proof
         if: always()
