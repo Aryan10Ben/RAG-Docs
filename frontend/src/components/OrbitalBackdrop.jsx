@@ -49,7 +49,7 @@ export default function OrbitalBackdrop() {
       });
       travelers.forEach((circle, index) => {
         // Tilted orbit, separate from the globe, with slow moving light points.
-        const t = (reduced ? 0.75 : time * 0.00007) + index * Math.PI;
+        const t = (reduced ? 0.75 : time * 0.00007) + Math.floor(index / 2) * Math.PI;
         const px = 600 + 460 * Math.cos(t);
         const py = 346 + 160 * Math.sin(t) - 0.13 * (px - 600);
         circle.setAttribute("cx", px.toFixed(2));
@@ -119,8 +119,8 @@ export default function OrbitalBackdrop() {
             <stop offset=".64" stopColor="white" stopOpacity=".6" />
             <stop offset="1" stopColor="black" stopOpacity=".12" />
           </radialGradient>
-          <mask id="globe-fade"><circle cx="600" cy="345" r="350" fill="url(#mesh-fade)" /></mask>
-          <clipPath id="globe-clip"><circle cx="600" cy="345" r="348" /></clipPath>
+          <mask id="globe-fade"><circle cx="0" cy="0" r="350" fill="url(#mesh-fade)" /></mask>
+          <clipPath id="globe-clip"><circle cx="0" cy="0" r="348" /></clipPath>
         </defs>
 
         <g className="globe-core" transform="translate(600 345)">
