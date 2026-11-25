@@ -34,6 +34,17 @@ Response fields: `answer`, `sources` (each has `filename`, `page`, `snippet`, `s
 
 AI Gateway returns a billing error (HTTP 403 requiring a valid card) from this account during the first real embedding attempt. Never treat a GET health-check as evidence that the model works.
 
+## Recommended free-tier alternative: Gemini Flash-Lite
+
+The backend now supports `RAG_GENERATION_PROVIDER=gemini`, using Gemini's direct REST API, without Vercel AI Gateway billing. It defaults to `gemini-2.5-flash-lite`, which Google lists in its Free Tier pricing table (availability/quota determined by your actual Google AI Studio project).
+
+1. Create your key at https://aistudio.google.com/apikey; do not send it in chat or commit it.
+2. In Vercel Project Settings -> Environment Variables add `GEMINI_API_KEY` as a sensitive **server-side** secret, plus `RAG_GENERATION_PROVIDER=gemini` for your intended environment; optionally set `GEMINI_MODEL=gemini-2.5-flash-lite`.
+3. Redeploy the Vercel preview to load the variables.
+4. Verify a real PDF with `RAG_EXPECTED_ANSWER_MODE=llm`, and check both the answer and its retrieved supporting passages; then verify the browser workflow.
+
+The free tier may enforce per-model request quotas, may vary by account or location, and (per Google's pricing page) Free-tier data can be used to improve Google's products. The public demo should accept only non-sensitive test PDFs and should have meaningful abuse controls before enabling any LLM generation on production.
+
 ## Alternative: Groq Free API without Vercel Gateway billing
 
 Create an API key at https://console.groq.com/keys in your own account. The Groq Free plan has strict usage limits; check https://console.groq.com/docs/rate-limits. In Vercel > sourcelens-rag > Settings > Environment Variables, securely add:
