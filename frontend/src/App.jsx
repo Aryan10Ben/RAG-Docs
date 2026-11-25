@@ -48,6 +48,20 @@ function Icon({ name, size = 20 }) {
   }
 }
 
+function Brand() {
+  return (
+    <a className="brand" href="#top" aria-label="SourceLens home">
+      <svg className="brand-symbol" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <circle className="brand-lens" cx="20" cy="20" r="9.6" strokeWidth="1.8" />
+        <ellipse className="brand-orbit" cx="20" cy="20" rx="18.5" ry="7.7" transform="rotate(-32 20 20)" strokeWidth="1.7" />
+        <circle className="brand-focus" cx="20" cy="20" r="3.8" />
+        <circle className="brand-signal" cx="35.2" cy="10" r="2" />
+      </svg>
+      <span className="brand-wordmark">Source<span>Lens</span></span>
+    </a>
+  );
+}
+
 function FileUpload({ selectedFile, onSelect, onUpload, busy, inputRef, compact = false }) {
   const [dragging, setDragging] = useState(false);
 
@@ -300,7 +314,7 @@ export default function App() {
       <OrbitalBackdrop />
       <header className="site-header">
         <nav className="nav-pill" aria-label="Main navigation">
-          <span className="nav-location">PDF <span aria-hidden="true">/</span> WORKSPACE</span>
+          <Brand />
           <a className="nav-link" href="https://github.com/Aryan10Ben/RAG-Docs" target="_blank" rel="noreferrer">
             GitHub <Icon name="external" size={15} />
           </a>
