@@ -53,10 +53,20 @@ async def run():
         assert await page.locator(".kinetic-title > span").count() == 3
         for obsolete in ("DOCUMENT INTELLIGENCE", "YOUR DOCUMENTS, MADE SEARCHABLE", "Find what matters.", "AI generation optional"):
             assert obsolete not in await page.locator("body").inner_text(), "Obsolete hero copy: " + obsolete
-        animation = await page.locator(".kinetic-title > span").first.evaluate("(el) => getComputedStyle(el).animationName")
-        assert animation == "kinetic-word", "Missing typography animation"
+        assert await page.locator(".nav-location").inner_text() == "PDF / WORKSPACE"
+        assert await page.locator(".orbital-dotfield").count() == 1
+        assert await page.locator("[data-meridian]").count() == 24
+        animations = []
+        for selector in (".hero-word-upload", ".hero-word-ask", ".ask-s", ".hero-word-find"):
+            animations.append(await page.locator(selector).evaluate("(el) => getComputedStyle(el).animationName"))
+        assert animations == ["upload-rock", "ask-sweep", "ask-s-pulse", "find-shift"], "Unexpected word animations: " + str(animations)
+        meridian = page.locator("[data-meridian]").nth(4)
+        before = float(await meridian.get_attribute("rx"))
+        await page.wait_for_timeout(460)
+        after = float(await meridian.get_attribute("rx"))
+        assert abs(before - after) > 1, "Globe longitudes did not rotate"
         await page.screenshot(path="sourcelens-kinetic-hero.png", full_page=True, animations="allow")
-        print("PASS: Kinetic hero and simplified copy", flush=True)
+        print("PASS: Globe revolves smoothly, matte dotted background, and three distinct word animations", flush=True)
         print("PASS: Desktop page renders", flush=True)
         await page.locator('input[aria-label="Choose a PDF document"]').set_input_files({
             "name": "silver-compass.pdf",
@@ -84,8 +94,13 @@ async def run():
         mobile_page = await mobile.new_page()
         await mobile_page.goto(BASE_URL, wait_until="domcontentloaded", timeout=35000)
         await expect(mobile_page.locator(".landing h1")).to_be_visible()
-        reduced = await mobile_page.locator(".kinetic-title > span").first.evaluate("(el) => getComputedStyle(el).animationName")
+        reduced = await mobile_page.locator(".hero-word-upload").evaluate("(el) => getComputedStyle(el).animationName")
         assert reduced == "none", "Reduced-motion preference ignored"
+        fixed = mobile_page.locator("[data-meridian]").nth(4)
+        reduced_before = await fixed.get_attribute("rx")
+        await mobile_page.wait_for_timeout(350)
+        reduced_after = await fixed.get_attribute("rx")
+        assert reduced_before == reduced_after, "Globe motion continues when reduced motion is requested"
         overflow = await mobile_page.evaluate("document.documentElement.scrollWidth > window.innerWidth + 4")
         assert not overflow, "Mobile viewport has horizontal overflow"
         await mobile_page.screenshot(path="sourcelens-mobile-proof.png", full_page=True)
