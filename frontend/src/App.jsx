@@ -310,7 +310,6 @@ export default function App() {
       <header className="site-header">
         <nav className="nav-pill" aria-label="Main navigation">
           <Brand />
-          <span className="nav-center">DOCUMENT INTELLIGENCE</span>
           <a className="nav-link" href="https://github.com/Aryan10Ben/RAG-Docs" target="_blank" rel="noreferrer">
             GitHub <Icon name="external" size={15} />
           </a>
@@ -320,12 +319,15 @@ export default function App() {
       <main className="page-main">
         {!hasDocs ? (
           <section className="landing">
-            <div className="eyebrow"><span className="eyebrow-dot" /> YOUR DOCUMENTS, MADE SEARCHABLE</div>
-            <h1>Ask your documents.<br /><span>Find what matters.</span></h1>
-            <p className="hero-description">Upload a PDF. Ask a question. Find the relevant evidence.</p>
+            <div className="kinetic-hero">
+              <h1 className="kinetic-title">
+                <span>Upload.</span>{" "}<span>Ask.</span>{" "}<span>Find.</span>
+              </h1>
+              <div className="kinetic-track" aria-hidden="true"><span /></div>
+              <p className="hero-description">Upload a PDF. Ask a question. Find answers.</p>
+            </div>
             <FileUpload selectedFile={selectedFile} onSelect={chooseFile} onUpload={uploadFile} busy={busy} inputRef={pickerRef} />
             <Feedback error={error} notice={notice} onDismiss={() => { setError(""); setNotice(""); }} />
-            <div className="landing-note"><Icon name="spark" size={14} /> Source-grounded answers · AI generation optional</div>
           </section>
         ) : (
           <section className="studio">
