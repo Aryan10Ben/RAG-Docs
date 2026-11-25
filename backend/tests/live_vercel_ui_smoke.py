@@ -75,6 +75,16 @@ async def run():
         await page.screenshot(path="sourcelens-kinetic-hero.png", full_page=True, animations="allow")
         print("PASS: Globe revolves smoothly, matte dotted background, and three distinct word animations", flush=True)
         print("PASS: Desktop page renders", flush=True)
+        # Invalid file is blocked in the UI before any API upload.
+        await page.locator('input[aria-label="Choose a PDF document"]').set_input_files({
+            "name": "not-a-pdf.txt",
+            "mimeType": "text/plain",
+            "buffer": b"This is not a PDF",
+        })
+        await expect(page.get_by_role("alert")).to_contain_text("Only PDF files are supported")
+        await expect(page.get_by_role("button", name="Analyze document")).to_have_count(0)
+        print("PASS: Invalid non-PDF file is rejected before upload", flush=True)
+
         await page.locator('input[aria-label="Choose a PDF document"]').set_input_files({
             "name": "silver-compass.pdf",
             "mimeType": "application/pdf",
@@ -91,11 +101,48 @@ async def run():
         await expect(page.locator(".evidence-item summary").first).to_contain_text("Page 1")
         await expect(page.locator(".answer-actions")).to_contain_text("Extracted from your PDF")
         print("PASS: UI shows the actual fact, the cited PDF page, and honest extractive status", flush=True)
+        # A second factual question checks repeated query handling without re-uploading.
+        await page.locator("#document-question").fill("How many participants were in the study?")
+        await page.get_by_role("button", name="Ask", exact=True).click()
+        await expect(page.locator(".answer-content > p").last).to_contain_text("73", timeout=65000)
+        await expect(page.locator(".evidence-item summary").last).to_contain_text("Page 1")
+        print("PASS: A second question returns the other correct PDF fact", flush=True)
+        # Unsupported questions should say so rather than hallucinate a fact.
+        await page.locator("#document-question").fill("What is the capital of planet Zogoria?")
+        await page.get_by_role("button", name="Ask", exact=True).click()
+        await expect(page.locator(".answer-content > p").last).to_contain_text("couldn't find", timeout=65000)
+        print("PASS: Unsupported question receives a no-answer response", flush=True)
+
+
         for endpoint in ("/api/extract", "/api/index", "/api/ask"):
             matches = [code for url, code in server_responses if endpoint in url]
             assert matches and 200 in matches, f"Missing successful API response for {endpoint}: {matches}"
         print("PASS: All three real API requests returned HTTP 200", flush=True)
         await page.screenshot(path="sourcelens-desktop-proof.png", full_page=True)
+        # Independently exercise HTML5 drag-and-drop upload, not just file picker.
+        drag_page = await context.new_page()
+        await drag_page.goto(BASE_URL, wait_until="domcontentloaded", timeout=35000)
+        import base64
+        encoded_pdf = base64.b64encode(make_pdf()).decode("ascii")
+        await drag_page.evaluate("""(encoded) => {
+            const binary = atob(encoded);
+            const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+            const transfer = new DataTransfer();
+            transfer.items.add(new File([bytes], "dragged-silver-compass.pdf", { type: "application/pdf" }));
+            const dropZone = document.querySelector(".drop-target");
+            dropZone.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: transfer }));
+            dropZone.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }));
+        }""", encoded_pdf)
+        await expect(drag_page.locator(".selected-file-name")).to_contain_text("dragged-silver-compass.pdf")
+        await drag_page.get_by_role("button", name="Analyze document").click()
+        await expect(drag_page.locator(".document-pill")).to_contain_text("dragged-silver-compass.pdf", timeout=65000)
+        await drag_page.locator("#document-question").fill("What is the certification number of Silver Compass?")
+        await drag_page.get_by_role("button", name="Ask", exact=True).click()
+        await expect(drag_page.locator(".answer-content > p").first).to_contain_text(FACT, timeout=65000)
+        print("PASS: Drag-and-drop real PDF upload, indexing and Q&A", flush=True)
+        await drag_page.screenshot(path="sourcelens-drag-drop-proof.png", full_page=True)
+        await drag_page.close()
+
 
         mobile = await browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, reduced_motion="reduce")
         mobile_page = await mobile.new_page()
