@@ -7,7 +7,7 @@
 **A document-grounded PDF question-answering workspace.**  
 Upload a PDF, retrieve relevant passages, and inspect concise answers with page-level evidence.
 
-[**Live demo**](https://sourcelens-rag.vercel.app) · [**Architecture & API**](docs/VERCEL_RAG.md) · [**Interview notes**](docs/INTERVIEW_GUIDE.md) · [**Report an issue**](https://github.com/Aryan10Ben/RAG-Docs/issues)
+[**Live demo**](https://sourcelens-rag.vercel.app) · [**Architecture & API**](docs/VERCEL_RAG.md) · [**Report an issue**](https://github.com/Aryan10Ben/RAG-Docs/issues)
 
 [![Quality checks](https://github.com/Aryan10Ben/RAG-Docs/actions/workflows/ci.yml/badge.svg)](https://github.com/Aryan10Ben/RAG-Docs/actions/workflows/ci.yml)
 ![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
