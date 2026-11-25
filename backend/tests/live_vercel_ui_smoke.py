@@ -53,7 +53,14 @@ async def run():
         assert await page.locator(".kinetic-title > span").count() == 3
         for obsolete in ("DOCUMENT INTELLIGENCE", "YOUR DOCUMENTS, MADE SEARCHABLE", "Find what matters.", "AI generation optional"):
             assert obsolete not in await page.locator("body").inner_text(), "Obsolete hero copy: " + obsolete
-        assert await page.locator(".nav-location").inner_text() == "PDF / WORKSPACE"
+        await expect(page.get_by_role("link", name="SourceLens home")).to_be_visible()
+        assert await page.locator(".brand-wordmark").inner_text() == "SourceLens"
+        assert await page.locator(".brand-symbol").count() == 1
+        scan = await page.locator(".drop-target").evaluate("(el) => getComputedStyle(el, \"::before\").animationName")
+        assert scan == "upload-glass-scan", "Missing upload scan animation"
+        backdrop = await page.locator(".drop-target").evaluate("(el) => getComputedStyle(el).backdropFilter")
+        assert "blur(5px)" in backdrop, "The glass panel blur is missing"
+        print("PASS: SourceLens logo and glass upload light sweep", flush=True)
         assert await page.locator(".orbital-dotfield").count() == 1
         assert await page.locator("[data-meridian]").count() == 24
         animations = []
