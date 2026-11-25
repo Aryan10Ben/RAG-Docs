@@ -1,47 +1,61 @@
-# SourceLens Live RAG Verification — 2026-11-23
+# SourceLens — Live PDF Verification Record
 
-## Acceptance criterion
-A generated PDF containing a fabricated certification number must upload to the hosted API; a factual question must then return **481726**. When the backend supports citations, the answer should include a relevant source passage.
+**Last release-candidate tests:** November 25, 2026  
+**Current public version:** [SourceLens on Vercel](https://sourcelens-rag.vercel.app)
 
-**Result: FAILED — blocked before indexing or answering.**
+## ✅ Working: Vercel extractive PDF Q&A
 
-## Evidence
-GitHub Actions run: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45237011953
+A synthetic, non-sensitive PDF was uploaded and queried through **real hosted Vercel API Functions**. It contained two known facts: certificate number **481726** and research cohort size **73**.
 
-- Target API: https://rag-doc-q-a.onrender.com
-- GET /health: ReadTimeout after 45 seconds
-- GET /: ReadTimeout after 45 seconds
-- POST /files/upload: ReadTimeout after 210 seconds
-- POST /chat/ask: not run because upload did not complete
-- Job: failed, exit code 1
+| Check | Recorded result |
+| --- | --- |
+| `GET /api/extract`, `/api/index`, `/api/ask` | All HTTP 200 |
+| Real PDF upload with known facts | HTTP 200; correct page text |
+| Passage-vector indexing | HTTP 200; expected indexed chunks returned |
+| Q&A retrieval | HTTP 200; answer **481726** returned |
+| Source evidence | Filename `silver-compass.pdf`, page **1**, matching passage |
+| Browser file picker | Success |
+| Browser drag and drop | Success |
+| Invalid non-PDF upload | Rejected in UI |
+| Second browser question | Correct answer **73** |
+| Unsupported question | Returned a no-answer message |
+| Mobile/reduced motion | Passed |
+| Browser JavaScript errors | Zero uncaught errors |
 
-The smoke test creates a harmless single-page PDF and runs from GitHub Actions, rather than mocking the API.
+**Reproducible evidence:**  
+- [Actual HTTP PDF-to-answer test — PASS](https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45679302905)
+- [Chromium PDF/drag-and-drop/answer/UI test — PASS](https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45679291385)
+- [GitHub Actions source and test scripts](../backend/tests/)
 
-## Interpretation
-The existing deployed API was not responding to real requests at test time. That does not prove that the RAG algorithm is broken; the end-to-end answer cannot be assessed without a working API.
+These are acceptance tests of the **source-grounded extractive mode**. They do **not** verify live Gemini/Groq model generation.
 
-The current repository implements PDF extraction, chunking, SentenceTransformer embeddings, FAISS retrieval and Groq/Llama generation. The frontend calls the old Render backend, but the connected Render workspace lists ResumeIQ, not SourceLens. Hence the old service's logs or deployment cannot be managed through that workspace.
+## What the verified answer looked like
 
-## Recovery and release criteria
-1. Obtain access to the existing SourceLens Render backend or deploy the backend folder to a Render service owned by the project, checking plan costs before provisioning.
-2. Configure GROQ_API_KEY securely in the backend environment; do not commit or share it.
-3. Check that GET /health responds and inspect memory usage / model download startup logs.
-4. Verify the PDF indexing endpoint successfully responds.
-5. Set VITE_API_BASE_URL in Vercel to the verified API; explicitly allow production and preview frontend origins through CORS_ORIGINS.
-6. Rerun the live_rag_smoke.py test against the real hosted API URL.
-7. Test browser upload, question, answer and source passages.
-8. Merge the design branch into main **only after** the user story passes.
+> The certification number of the Silver Compass project is 481726. (Source: silver-compass.pdf, p. 1)
 
-This is a failed verification report, not a claim of successful release.
+The response also included a source snippet and a retrieval score. The score represents lexical similarity, not confidence in factual truth.
 
-## Update — Vercel-backed source-grounded QA verified (2026-11-24)
+## ⚙️ Not yet verified: an external LLM in production
 
-The failed Render-service results above are historical and refer to the **old Render URL**, not the newly implemented Vercel backend.
+The active default produces source excerpts. The codebase also contains **optional** Gemini, Groq and Vercel AI Gateway generation adapters. A provider key/billing configuration is required before model-generated answers can be tested. Unit tests of these adapters use mock transports and are **not** live provider evidence.
 
-- Same-origin Vercel API: PDF extraction, lexical vector indexing, cosine retrieval and extractive answers all returned HTTP 200.
-- Hosted real PDF acceptance test: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45244610161 — PASS, verified answer 481726 from p.1.
-- Actual Chromium browser upload/ask test: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45244616746 — PASS, desktop and mobile.
-- React + Python checks: https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45244623235 — PASS.
-- Live **LLM-based generation remains unverified**: Vercel AI Gateway returns HTTP 403 unless account billing is configured, and Groq requires a securely configured GROQ_API_KEY. The default hosted answer mode is extractive and is labelled as such.
+Before marking this portion complete, configure a provider securely, deploy, and repeat the known-answer PDF smoke test with `RAG_EXPECTED_ANSWER_MODE=llm`, checking both the answer and its retrieved passages. Do not make unqualified claims of "LLM-powered RAG" until that passes.
 
-**Do not describe the extractive mode as live LLM RAG.** It is a working source-grounded QA baseline. Merge criteria for full LLM RAG remain conditional on an actual successful provider-backed question-answering test.
+## Historical incident: old Render backend (resolved by architecture replacement)
+
+On November 23, 2026, the earlier API at `https://rag-doc-q-a.onrender.com` failed an end-to-end test:
+
+- `GET /health` — timed out (45 seconds)
+- `GET /` — timed out (45 seconds)
+- `POST /files/upload` — timed out (210 seconds)
+- `POST /chat/ask` — blocked because upload failed
+
+Historical run: [Render smoke test failure](https://github.com/Aryan10Ben/RAG-Docs/actions/runs/45237011953).
+
+**Resolution:** The app was re-architected onto same-origin Vercel Functions, removing the old Render dependency. Subsequent PDF and browser tests passed. The Render outage is not representative of the current Vercel application's extractive path.
+
+## Remaining limitations
+
+The public demo has no authentication, permanent document store, OCR, or production-grade abuse safeguards. Its retrieval uses local lexical vectors rather than semantic FAISS in the deployed path. Use **non-sensitive PDF documents** only.
+
+For architecture, API definitions, live testing and provider setup, see [VERCEL_RAG.md](VERCEL_RAG.md). For resume-safe descriptions, see [INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md).
