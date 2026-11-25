@@ -26,7 +26,7 @@ jobs:
         run: python -m playwright install --with-deps chromium
       - name: Exercise real PDF upload and Q&A browser flow
         env:
-          RAG_API_URL: https://sourcelens-c9d5vx1wg-aryan-ben-project.vercel.app
+          RAG_API_URL: https://sourcelens-q1zvbo691-aryan-ben-project.vercel.app
         run: python backend/tests/live_vercel_ui_smoke.py
       - name: Upload visual proof
         if: always()
@@ -35,6 +35,7 @@ jobs:
           name: sourcelens-browser-screenshots
           path: |
             sourcelens-kinetic-hero.png
+            sourcelens-drag-drop-proof.png
             sourcelens-desktop-proof.png
             sourcelens-mobile-proof.png
           if-no-files-found: ignore
